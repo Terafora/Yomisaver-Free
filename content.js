@@ -1,7 +1,9 @@
 import kuromoji from 'kuromoji';
+import { JMDict } from 'jmdict-util';
 
 // Constants
 const DICTIONARY_PATH = "path/to/dictionary";
+const jmdict = new JMDict({ dbPath: 'path/to/jmdict.sqlite' });
 
 // Function to tokenize and inject furigana
 function injectFurigana(node) {
@@ -41,13 +43,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Function to highlight and send selected text to background for saving
 function addSelectionListener() {
-    document.addEventListener("mouseup", () => {
+    document.addEventListener("mouseup", async () => {
         const selectedText = window.getSelection().toString().trim();
         if (selectedText) {
             console.log(`Selected text: ${selectedText}`); // For debugging
+
+            // Fetch word information from JMDict
+            const wordInfo = await jmdict.lookup(selectedText);
+
             chrome.runtime.sendMessage({
                 action: "saveVocabulary",
-                text: selectedText
+                text: selectedText,
+                wordInfo: wordInfo
             });
         }
     });

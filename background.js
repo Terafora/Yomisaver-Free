@@ -15,15 +15,15 @@ chrome.contextMenus.onClicked.addListener((info) => {
 // Listen for messages from the content script
 chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "saveVocabulary") {
-        saveVocabulary(message.text, "Context not provided", "Reading unavailable");
+        saveVocabulary(message.text, "Context not provided", "Reading unavailable", message.wordInfo);
     }
 });
 
 // Function to save vocabulary
-function saveVocabulary(word, sentence, reading) {
+function saveVocabulary(word, sentence, reading, wordInfo) {
     chrome.storage.local.get({ vocabList: [] }, (data) => {
         const vocabList = data.vocabList || [];
-        const newEntry = { word, sentence, reading };
+        const newEntry = { word, sentence, reading, wordInfo };
 
         // Check for duplicates
         if (!vocabList.some(entry => entry.word === word && entry.sentence === sentence)) {
