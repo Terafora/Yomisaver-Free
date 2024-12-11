@@ -99,7 +99,6 @@ let wordCache = new Map();
 // Modified dictionary lookup function
 async function lookupWord(word) {
     try {
-        // Check cache first
         if (wordCache.has(word)) {
             return wordCache.get(word);
         }
@@ -108,25 +107,25 @@ async function lookupWord(word) {
             chrome.runtime.sendMessage(
                 { action: "lookupWord", word },
                 response => {
-                    if (chrome.runtime.lastError) {
-                        console.error('Runtime error:', chrome.runtime.lastError);
-                        resolve(null);
-                        return;
-                    }
-
-                    if (!response || !response.success) {
-                        console.error('API error:', response?.error || 'Unknown error');
+                    if (chrome.runtime.lastError || !response || !response.success) {
+                        console.error('Error:', chrome.runtime.lastError || response?.error || 'Unknown error');
                         resolve(null);
                         return;
                     }
 
                     if (response.data.data && response.data.data.length > 0) {
+                        const data = response.data.data[0];
                         const wordInfo = {
                             word: word,
-                            reading: response.data.data[0].japanese[0].reading || '',
-                            meanings: response.data.data[0].senses.map(sense => 
-                                sense.english_definitions).flat(),
-                            tags: response.data.data[0].tags || []
+                            reading: data.japanese[0].reading || '',
+                            meanings: data.senses.map(sense => ({
+                                definitions: sense.english_definitions,
+                                partOfSpeech: sense.parts_of_speech,
+                                tags: sense.tags,
+                                info: sense.info || []
+                            })),
+                            jlpt: data.jlpt || [],
+                            tags: data.tags || []
                         };
                         wordCache.set(word, wordInfo);
                         resolve(wordInfo);
@@ -188,15 +187,35 @@ function createPopup(wordInfo, rect) {
     const popup = document.createElement('div');
     popup.className = 'yomisaver-popup';
     
-    // Clean the word of any HTML/ruby tags
     const cleanWord = wordInfo.word.replace(/<[^>]+>/g, '');
     
+    // Format meanings with their grammatical info
+    const meaningsHTML = wordInfo.meanings.map(meaning => {
+        const pos = meaning.partOfSpeech.length ? 
+            `<span class="pos">${meaning.partOfSpeech.join(', ')}</span>` : '';
+        const tags = meaning.tags.length ? 
+            `<span class="tags">${meaning.tags.join(', ')}</span>` : '';
+        const info = meaning.info.length ? 
+            `<span class="info">${meaning.info.join(', ')}</span>` : '';
+        return `
+            <div class="meaning-group">
+                ${pos}${tags}${info}
+                <div class="definitions">${meaning.definitions.join('; ')}</div>
+            </div>
+        `;
+    }).join('');
+
+    // Add JLPT level if available
+    const jlptInfo = wordInfo.jlpt.length ? 
+        `<div class="jlpt">${wordInfo.jlpt.join(', ').toUpperCase()}</div>` : '';
+
     popup.innerHTML = `
         <div class="header">
             <div class="word">${cleanWord}</div>
             ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+            ${jlptInfo}
         </div>
-        <div class="meanings">${wordInfo.meanings.join('; ')}</div>
+        <div class="meanings-container">${meaningsHTML}</div>
     `;
 
     // Add to document first so we can measure it
