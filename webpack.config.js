@@ -1,8 +1,10 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    mode: 'development', // Set the mode to 'development' or 'production'
+    mode: 'production', // Change to production mode
+    devtool: 'source-map', // Use source-map instead of eval
     entry: './content.js',
     output: {
         filename: 'content.bundle.js',
@@ -37,6 +39,9 @@ module.exports = {
             bluebird: require.resolve('bluebird')
         }
     },
+    node: {
+        global: true
+    },
     module: {
         rules: [
             {
@@ -45,7 +50,8 @@ module.exports = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['@babel/preset-env']
+                        presets: ['@babel/preset-env'],
+                        plugins: ['@babel/plugin-transform-runtime']
                     }
                 }
             },
@@ -56,8 +62,24 @@ module.exports = {
             {
                 test: /\.html$/,
                 use: 'html-loader'
+            },
+            {
+                test: /dict\/.*\.dat$/,
+                use: [
+                    {
+                        loader: 'file-loader',
+                        options: {
+                            name: '[path][name].[ext]'
+                        }
+                    }
+                ]
             }
         ]
+    },
+    optimization: {
+        minimize: true,
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
     },
     plugins: [
         new webpack.IgnorePlugin({
@@ -66,6 +88,28 @@ module.exports = {
         }),
         new webpack.IgnorePlugin({
             resourceRegExp: /^npm$/
+        }),
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: path.resolve(__dirname, 'node_modules/kuromoji/dict'),
+                    to: path.resolve(__dirname, 'dist/dict')
+                }
+            ]
+        }),
+        new webpack.DefinePlugin({
+            'process.env.NODE_ENV': JSON.stringify('production')
+        }),
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: 'node_modules/kuromoji/dict',
+                    to: 'dict'
+                }
+            ]
+        }),
+        new webpack.LoaderOptionsPlugin({
+            debug: false
         })
     ]
 };
