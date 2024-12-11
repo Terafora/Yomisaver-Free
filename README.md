@@ -38,7 +38,7 @@ YomiSaver is a Chrome extension designed to help you learn Japanese effortlessly
 
 ## Current Progress
 
-![YomiSaverProgress002](https://github.com/user-attachments/assets/1ae9db8a-93a9-4462-b264-ed7d0a4e2963)
+![YomiSaverProgress003](https://github.com/user-attachments/assets/039a9e1e-3d65-44a8-ae77-ac0114be4697)
 
 Currently the application successfully injects furigana into the webpage and displays popups with the readings and definitions.
    - Need to clean the input so that the kanji displays without unnecessary furigana next to it.
