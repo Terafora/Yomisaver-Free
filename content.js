@@ -131,47 +131,75 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function addSelectionListener() {
     let popup = null;
 
+    function removeExistingPopup() {
+        if (popup) {
+            popup.remove();
+            popup = null;
+        }
+    }
+
+    function createPopup(wordInfo, rect) {
+        const popup = document.createElement('div');
+        popup.className = 'yomisaver-popup';
+        popup.innerHTML = `
+            <div class="word">${wordInfo.word}</div>
+            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+            <div class="meanings">${wordInfo.meanings.join('; ')}</div>
+        `;
+
+        // Position popup near selection
+        popup.style.position = 'fixed';
+        popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
+        popup.style.left = `${rect.left + window.scrollX}px`;
+        
+        return popup;
+    }
+
     document.addEventListener("mouseup", async () => {
         try {
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
             
-            // Remove existing popup if any
-            if (popup) {
-                popup.remove();
-                popup = null;
+            // Remove existing popup
+            removeExistingPopup();
+
+            // Check if there's valid selected text
+            if (!selectedText) {
+                return;
             }
 
-            if (selectedText) {
-                const wordInfo = await lookupWord(selectedText);
-                if (wordInfo) {
-                    // Create and show popup
-                    popup = document.createElement('div');
-                    popup.className = 'yomisaver-popup';
-                    popup.innerHTML = `
-                        <div class="word">${wordInfo.word}</div>
-                        ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
-                        <div class="meanings">${wordInfo.meanings.join('; ')}</div>
-                    `;
+            // Verify selection has valid ranges
+            if (!selection.rangeCount) {
+                console.warn('No valid selection range found');
+                return;
+            }
 
-                    // Position popup near selection
-                    const rect = selection.getRangeAt(0).getBoundingClientRect();
-                    popup.style.position = 'fixed';
-                    popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
-                    popup.style.left = `${rect.left + window.scrollX}px`;
-                    
-                    document.body.appendChild(popup);
+            const wordInfo = await lookupWord(selectedText);
+            if (wordInfo) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                // Create and show popup
+                popup = createPopup(wordInfo, rect);
+                document.body.appendChild(popup);
 
-                    // Send to background for saving
-                    chrome.runtime.sendMessage({
-                        action: "saveVocabulary",
-                        text: selectedText,
-                        wordInfo: wordInfo
-                    });
-                }
+                // Send to background for saving
+                chrome.runtime.sendMessage({
+                    action: "saveVocabulary",
+                    text: selectedText,
+                    wordInfo: wordInfo
+                });
             }
         } catch (error) {
             console.error("Error in addSelectionListener:", error);
+            removeExistingPopup();
+        }
+    });
+
+    // Remove popup when clicking outside
+    document.addEventListener("mousedown", (event) => {
+        if (popup && !popup.contains(event.target)) {
+            removeExistingPopup();
         }
     });
 }
