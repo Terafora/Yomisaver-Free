@@ -30,6 +30,17 @@ async function initializeTokenizer() {
     });
 }
 
+// Add these helper functions
+function isKanji(char) {
+    return /[\u4e00-\u9faf]/.test(char);
+}
+
+function katakanaToHiragana(str) {
+    return str.replace(/[\u30A1-\u30F6]/g, function(match) {
+        return String.fromCharCode(match.charCodeAt(0) - 0x60);
+    });
+}
+
 // Simplified furigana injection
 async function injectFurigana(node) {
     if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) return;
@@ -46,11 +57,13 @@ async function injectFurigana(node) {
         if (!tokens || !tokens.length) return;
 
         const wrapper = document.createElement('span');
+        wrapper.className = 'yomisaver-text';  // Add class for selection handling
         wrapper.innerHTML = tokens.map(token => {
-            if (token.reading && token.reading !== token.surface_form) {
-                return `<ruby>${token.surface_form}<rt>${token.reading}</rt></ruby>`;
+            if (token.reading && [...token.surface_form].some(isKanji)) {
+                const hiraganaReading = katakanaToHiragana(token.reading);
+                return `<ruby class="yomisaver-word">${token.surface_form}<rt>${hiraganaReading}</rt></ruby>`;
             }
-            return token.surface_form;
+            return `<span class="yomisaver-word">${token.surface_form}</span>`;
         }).join('');
 
         node.replaceWith(wrapper);
@@ -180,45 +193,68 @@ function createPopup(wordInfo, rect) {
         <div class="meanings">${wordInfo.meanings.join('; ')}</div>
     `;
 
-    // Position popup near word or selection
-    popup.style.position = 'fixed';
-    popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
-    popup.style.left = `${rect.left + window.scrollX}px`;
+    // Add to document first so we can measure it
+    document.body.appendChild(popup);
+    
+    // Calculate position
+    const popupRect = popup.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    // Default position above the selection
+    let top = rect.top + window.scrollY - popupRect.height - 10;
+    let left = rect.left + window.scrollX;
+    
+    // If popup would go off top, position it below
+    if (top < window.scrollY) {
+        top = rect.bottom + window.scrollY + 10;
+    }
+    
+    // If popup would go off right, align it to right edge
+    if (left + popupRect.width > viewportWidth) {
+        left = viewportWidth - popupRect.width - 10;
+    }
+    
+    // Ensure minimum left position
+    left = Math.max(10, left);
+    
+    // Apply position
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
     
     return popup;
 }
 
-// Update the selection listener to use shared popup management
+// Update selection listener with better word detection
 async function addSelectionListener() {
     document.addEventListener("mouseup", async () => {
         try {
             const selection = window.getSelection();
             const selectedText = selection.toString().trim();
             
-            // Remove existing popup
             removeExistingPopup();
 
-            // Check if there's valid selected text
-            if (!selectedText) {
-                return;
-            }
+            if (!selectedText || !selection.rangeCount) return;
 
-            // Verify selection has valid ranges
-            if (!selection.rangeCount) {
-                console.warn('No valid selection range found');
-                return;
-            }
+            // Get the range and its bounding rectangle
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
 
+            // Try to get word info regardless of element class
             const wordInfo = await lookupWord(selectedText);
             if (wordInfo) {
-                const range = selection.getRangeAt(0);
-                const rect = range.getBoundingClientRect();
-                
-                // Create and show popup
                 popup = createPopup(wordInfo, rect);
                 document.body.appendChild(popup);
 
-                // Send to background for saving
+                // Adjust popup position if needed
+                const popupRect = popup.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                if (popupRect.bottom > viewportHeight) {
+                    // If popup would go below viewport, position it above selection
+                    popup.style.top = `${rect.top + window.scrollY - popupRect.height - 10}px`;
+                }
+
                 chrome.runtime.sendMessage({
                     action: "saveVocabulary",
                     text: selectedText,
@@ -231,9 +267,15 @@ async function addSelectionListener() {
         }
     });
 
-    // Remove popup when clicking outside
+    // Remove popup when clicking outside or on escape key
     document.addEventListener("mousedown", (event) => {
         if (popup && !popup.contains(event.target)) {
+            removeExistingPopup();
+        }
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
             removeExistingPopup();
         }
     });

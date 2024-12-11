@@ -1,23 +1,45 @@
 ruby {
-    font-size: 1em;
-    line-height: 1.2;
+    display: inline-block;
+    text-align: center;
+    line-height: normal;
+    position: relative;
+    margin: 0.5em 0;
 }
+
 rt {
-    font-size: 0.75em;
+    display: block;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    font-size: 0.5em;
     color: #555;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 1;
+    margin-bottom: 0.2em;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .yomisaver-popup {
-    position: absolute;
+    position: fixed;  /* Changed from absolute to fixed */
     background: white;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 10000;
+    z-index: 999999;  /* Increased z-index */
     max-width: 300px;
     opacity: 1;
     transition: opacity 0.2s ease-in-out;
+    pointer-events: auto;  /* Ensure clickable */
+    min-width: 200px;  /* Minimum width */
+    max-height: 80vh;  /* Maximum height */
+    overflow-y: auto;  /* Allow scrolling if content is too long */
 }
 
 .yomisaver-popup.hiding {
