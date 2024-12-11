@@ -187,9 +187,15 @@ function removeExistingPopup() {
 function createPopup(wordInfo, rect) {
     const popup = document.createElement('div');
     popup.className = 'yomisaver-popup';
+    
+    // Clean the word of any HTML/ruby tags
+    const cleanWord = wordInfo.word.replace(/<[^>]+>/g, '');
+    
     popup.innerHTML = `
-        <div class="word">${wordInfo.word}</div>
-        ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+        <div class="header">
+            <div class="word">${cleanWord}</div>
+            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+        </div>
         <div class="meanings">${wordInfo.meanings.join('; ')}</div>
     `;
 
