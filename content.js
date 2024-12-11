@@ -1,5 +1,84 @@
 const kuromoji = require('kuromoji');
 
+// Constants and cache
+let tokenizer = null;
+
+// Simplified initialization function
+async function initializeTokenizer() {
+    if (tokenizer) return tokenizer;
+    
+    const dicPath = chrome.runtime.getURL('dict');
+    console.log("Dictionary path:", dicPath);
+
+    return new Promise((resolve, reject) => {
+        console.log("Building tokenizer...");
+        kuromoji.builder({ 
+            dicPath: dicPath,
+            debugMode: true  // Add this for better error messages
+        })
+        .build((err, _tokenizer) => {
+            if (err) {
+                console.error('Tokenizer initialization error:', err);
+                console.error('Dictionary path used:', dicPath);
+                reject(err);
+                return;
+            }
+            console.log('Tokenizer built successfully');
+            tokenizer = _tokenizer;
+            resolve(tokenizer);
+        });
+    });
+}
+
+// Simplified furigana injection
+async function injectFurigana(node) {
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) return;
+    
+    // Skip if parent is already processed or is a special element
+    const parentTag = node.parentElement?.tagName;
+    if (parentTag === 'SCRIPT' || parentTag === 'STYLE' || 
+        parentTag === 'RT' || parentTag === 'RP') {
+        return;
+    }
+
+    try {
+        const tokens = await processText(node.textContent);
+        if (!tokens || !tokens.length) return;
+
+        const wrapper = document.createElement('span');
+        wrapper.innerHTML = tokens.map(token => {
+            if (token.reading && token.reading !== token.surface_form) {
+                return `<ruby>${token.surface_form}<rt>${token.reading}</rt></ruby>`;
+            }
+            return token.surface_form;
+        }).join('');
+
+        node.replaceWith(wrapper);
+    } catch (error) {
+        console.error('Error injecting furigana:', error);
+    }
+}
+
+// Initialize and process
+async function initAndProcess() {
+    try {
+        console.log("Starting initialization...");
+        await initializeTokenizer();
+        console.log("Processing document body...");
+        await traverseDOM(document.body);
+        console.log("Initial processing complete");
+    } catch (error) {
+        console.error("Error in initialization:", error);
+    }
+}
+
+// Start processing when ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAndProcess);
+} else {
+    initAndProcess();
+}
+
 // Constants
 const JISHO_API_URL = 'https://jisho.org/api/v1/search/words';
 let wordCache = new Map();
@@ -50,26 +129,6 @@ async function lookupWord(word) {
     }
 }
 
-// Initialize tokenizer once and reuse
-let tokenizer = null;
-
-async function initializeTokenizer() {
-    if (tokenizer) return tokenizer;
-    
-    return new Promise((resolve, reject) => {
-        kuromoji.builder({ dicPath: chrome.runtime.getURL('dict') })
-            .build((err, _tokenizer) => {
-                if (err) {
-                    console.error('Tokenizer initialization error:', err);
-                    reject(err);
-                    return;
-                }
-                tokenizer = _tokenizer;
-                resolve(tokenizer);
-            });
-    });
-}
-
 async function processText(text) {
     try {
         const _tokenizer = await initializeTokenizer();
@@ -80,25 +139,9 @@ async function processText(text) {
     }
 }
 
-// Function to tokenize and inject furigana
-async function injectFurigana(node) {
-    if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) return;
-
-    try {
-        const tokens = await processText(node.textContent);
-        const rubyContent = tokens.map(token => {
-            if (token.reading) {
-                return `<ruby>${token.surface_form}<rt>${token.reading}</rt></ruby>`;
-            }
-            return token.surface_form;
-        }).join('');
-
-        const wrapper = document.createElement('span');
-        wrapper.innerHTML = rubyContent;
-        node.replaceWith(wrapper);
-    } catch (error) {
-        console.error('Error in injectFurigana:', error);
-    }
+// Function to check if a character is Japanese
+function isJapanese(char) {
+    return /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(char);
 }
 
 // Traverse and process the DOM
@@ -117,44 +160,36 @@ async function traverseDOM(root) {
     }
 }
 
-// Trigger DOM processing on page load
-document.addEventListener("DOMContentLoaded", async () => {
-    console.log("DOMContentLoaded event triggered");
-    try {
-        await traverseDOM(document.body);
-    } catch (error) {
-        console.error("Error in DOMContentLoaded event:", error);
-    }
-});
-
 // Update selection listener to show a popup with word info
+let popup = null;
+
+function removeExistingPopup() {
+    if (popup) {
+        popup.remove();
+        popup = null;
+    }
+}
+
+// Move createPopup to the top level so it can be shared
+function createPopup(wordInfo, rect) {
+    const popup = document.createElement('div');
+    popup.className = 'yomisaver-popup';
+    popup.innerHTML = `
+        <div class="word">${wordInfo.word}</div>
+        ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+        <div class="meanings">${wordInfo.meanings.join('; ')}</div>
+    `;
+
+    // Position popup near word or selection
+    popup.style.position = 'fixed';
+    popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
+    popup.style.left = `${rect.left + window.scrollX}px`;
+    
+    return popup;
+}
+
+// Update the selection listener to use shared popup management
 async function addSelectionListener() {
-    let popup = null;
-
-    function removeExistingPopup() {
-        if (popup) {
-            popup.remove();
-            popup = null;
-        }
-    }
-
-    function createPopup(wordInfo, rect) {
-        const popup = document.createElement('div');
-        popup.className = 'yomisaver-popup';
-        popup.innerHTML = `
-            <div class="word">${wordInfo.word}</div>
-            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
-            <div class="meanings">${wordInfo.meanings.join('; ')}</div>
-        `;
-
-        // Position popup near selection
-        popup.style.position = 'fixed';
-        popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
-        popup.style.left = `${rect.left + window.scrollX}px`;
-        
-        return popup;
-    }
-
     document.addEventListener("mouseup", async () => {
         try {
             const selection = window.getSelection();

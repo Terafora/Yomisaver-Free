@@ -62,17 +62,6 @@ module.exports = {
             {
                 test: /\.html$/,
                 use: 'html-loader'
-            },
-            {
-                test: /dict\/.*\.dat$/,
-                use: [
-                    {
-                        loader: 'file-loader',
-                        options: {
-                            name: '[path][name].[ext]'
-                        }
-                    }
-                ]
             }
         ]
     },
@@ -92,21 +81,19 @@ module.exports = {
         new CopyPlugin({
             patterns: [
                 {
-                    from: path.resolve(__dirname, 'node_modules/kuromoji/dict'),
-                    to: path.resolve(__dirname, 'dist/dict')
-                }
+                    from: 'node_modules/kuromoji/dict/*.dat*',
+                    to: 'dict/[name][ext]'
+                },
+                { from: 'manifest.json' },
+                { from: 'background.js' },
+                { from: 'popup.html' },
+                { from: 'popup.js' },
+                { from: 'styles.css' },
+                { from: 'icon.png' }
             ]
         }),
         new webpack.DefinePlugin({
             'process.env.NODE_ENV': JSON.stringify('production')
-        }),
-        new CopyPlugin({
-            patterns: [
-                {
-                    from: 'node_modules/kuromoji/dict',
-                    to: 'dict'
-                }
-            ]
         }),
         new webpack.LoaderOptionsPlugin({
             debug: false
