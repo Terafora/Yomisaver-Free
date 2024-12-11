@@ -1,35 +1,49 @@
 const kuromoji = require('kuromoji');
 
-// Constants for jsDelivr CDN
-const JMDICT_CDN_BASE = 'https://cdn.jsdelivr.net/npm/jmdict-util@latest/build';
-let jmdictCache = new Map();
+// Constants
+const JISHO_API_URL = 'https://jisho.org/api/v1/search/words';
+let wordCache = new Map();
 
 // Modified dictionary lookup function
 async function lookupWord(word) {
     try {
         // Check cache first
-        if (jmdictCache.has(word)) {
-            return jmdictCache.get(word);
+        if (wordCache.has(word)) {
+            return wordCache.get(word);
         }
 
-        // Calculate which file to fetch based on first character
-        const firstChar = word.charAt(0);
-        const fileName = `words_${encodeURIComponent(firstChar)}.json`;
-        const response = await fetch(`${JMDICT_CDN_BASE}/${fileName}`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const wordList = await response.json();
-        
-        // Cache all words from this file
-        for (const entry of wordList) {
-            jmdictCache.set(entry.word, entry);
-        }
-        
-        // Return the requested word if found
-        return jmdictCache.get(word) || null;
+        return new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage(
+                { action: "lookupWord", word },
+                response => {
+                    if (chrome.runtime.lastError) {
+                        console.error('Runtime error:', chrome.runtime.lastError);
+                        resolve(null);
+                        return;
+                    }
+
+                    if (!response || !response.success) {
+                        console.error('API error:', response?.error || 'Unknown error');
+                        resolve(null);
+                        return;
+                    }
+
+                    if (response.data.data && response.data.data.length > 0) {
+                        const wordInfo = {
+                            word: word,
+                            reading: response.data.data[0].japanese[0].reading || '',
+                            meanings: response.data.data[0].senses.map(sense => 
+                                sense.english_definitions).flat(),
+                            tags: response.data.data[0].tags || []
+                        };
+                        wordCache.set(word, wordInfo);
+                        resolve(wordInfo);
+                    } else {
+                        resolve(null);
+                    }
+                }
+            );
+        });
     } catch (error) {
         console.error('Error looking up word:', error);
         return null;
@@ -113,14 +127,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-// Update selection listener to use new lookup
+// Update selection listener to show a popup with word info
 async function addSelectionListener() {
+    let popup = null;
+
     document.addEventListener("mouseup", async () => {
         try {
-            const selectedText = window.getSelection().toString().trim();
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            // Remove existing popup if any
+            if (popup) {
+                popup.remove();
+                popup = null;
+            }
+
             if (selectedText) {
                 const wordInfo = await lookupWord(selectedText);
                 if (wordInfo) {
+                    // Create and show popup
+                    popup = document.createElement('div');
+                    popup.className = 'yomisaver-popup';
+                    popup.innerHTML = `
+                        <div class="word">${wordInfo.word}</div>
+                        ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+                        <div class="meanings">${wordInfo.meanings.join('; ')}</div>
+                    `;
+
+                    // Position popup near selection
+                    const rect = selection.getRangeAt(0).getBoundingClientRect();
+                    popup.style.position = 'fixed';
+                    popup.style.top = `${rect.bottom + window.scrollY + 10}px`;
+                    popup.style.left = `${rect.left + window.scrollX}px`;
+                    
+                    document.body.appendChild(popup);
+
+                    // Send to background for saving
                     chrome.runtime.sendMessage({
                         action: "saveVocabulary",
                         text: selectedText,

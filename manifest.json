@@ -3,10 +3,18 @@
   "name": "YomiSaver",
   "version": "1.0",
   "description": "Learn Japanese effortlessly with furigana, flashcards, and Anki export.",
-  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
+  "permissions": [
+    "contextMenus", 
+    "storage", 
+    "activeTab", 
+    "scripting",
+    "webRequest",
+    "webRequestBlocking"
+  ],
   "host_permissions": [
     "<all_urls>",
-    "https://cdn.jsdelivr.net/"
+    "https://cdn.jsdelivr.net/",
+    "https://jisho.org/*"
   ],
   "background": {
     "service_worker": "background.js"

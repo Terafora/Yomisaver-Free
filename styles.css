@@ -6,3 +6,29 @@ rt {
     font-size: 0.75em;
     color: #555;
 }
+
+.yomisaver-popup {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 10000;
+    max-width: 300px;
+}
+
+.yomisaver-popup .word {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.yomisaver-popup .reading {
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.yomisaver-popup .meanings {
+    font-size: 0.9em;
+}
