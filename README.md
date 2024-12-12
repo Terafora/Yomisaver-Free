@@ -74,3 +74,7 @@ YomiSaver is a Chrome extension designed to help you learn Japanese effortlessly
 
 - Need to clean kanji display for unnecessary furigana
 - Dictionary information needs better formatting for flashcard export
+
+## Data Attribution
+
+The Japanese dictionary data is provided by [Jisho.org](https://jisho.org)'s API. Jisho.org is a powerful Japanese-English dictionary that provides word definitions, readings, and JLPT levels. It uses the [EDICT/JMdict](https://www.edrdg.org/jmdict/edict.html) dictionary files from the Electronic Dictionary Research and Development Group under the Creative Commons Attribution-ShareAlike License (CC BY-SA 3.0).
