@@ -41,6 +41,28 @@ function katakanaToHiragana(str) {
     });
 }
 
+// Add this new helper function at the top level
+function getCleanSelectedText() {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return null;
+
+    const range = selection.getRangeAt(0);
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+
+    // Remove all rt elements (furigana readings)
+    container.querySelectorAll('rt').forEach(rt => rt.remove());
+
+    // Get text content from ruby elements
+    container.querySelectorAll('ruby').forEach(ruby => {
+        const text = ruby.textContent.trim();
+        ruby.replaceWith(text);
+    });
+
+    // Clean any remaining HTML and get plain text
+    return container.textContent.trim();
+}
+
 // Simplified furigana injection
 async function injectFurigana(node) {
     if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) return;
@@ -186,8 +208,12 @@ function removeExistingPopup() {
 function createPopup(wordInfo, rect) {
     const popup = document.createElement('div');
     popup.className = 'yomisaver-popup';
-    
-    const cleanWord = wordInfo.word.replace(/<[^>]+>/g, '');
+
+    function cleanText(text) {
+        return text.replace(/<[^>]+>/g, ""); // Strip HTML tags
+    }
+
+    const cleanWord = cleanText(wordInfo.word);
     
     // Format meanings with their grammatical info
     const meaningsHTML = wordInfo.meanings.map(meaning => {
@@ -250,22 +276,20 @@ function createPopup(wordInfo, rect) {
     return popup;
 }
 
-// Update selection listener with better word detection
+// Modify the addSelectionListener function
 async function addSelectionListener() {
     document.addEventListener("mouseup", async () => {
         try {
-            const selection = window.getSelection();
-            const selectedText = selection.toString().trim();
-            
+            const selectedText = getCleanSelectedText();
             removeExistingPopup();
 
-            if (!selectedText || !selection.rangeCount) return;
+            if (!selectedText || selectedText.length === 0) return;
 
-            // Get the range and its bounding rectangle
-            const range = selection.getRangeAt(0);
+            // Get the range for positioning
+            const range = window.getSelection().getRangeAt(0);
             const rect = range.getBoundingClientRect();
 
-            // Try to get word info regardless of element class
+            // Try to get word info with the cleaned text
             const wordInfo = await lookupWord(selectedText);
             if (wordInfo) {
                 popup = createPopup(wordInfo, rect);
@@ -276,7 +300,6 @@ async function addSelectionListener() {
                 const viewportHeight = window.innerHeight;
                 
                 if (popupRect.bottom > viewportHeight) {
-                    // If popup would go below viewport, position it above selection
                     popup.style.top = `${rect.top + window.scrollY - popupRect.height - 10}px`;
                 }
 
@@ -292,7 +315,7 @@ async function addSelectionListener() {
         }
     });
 
-    // Remove popup when clicking outside or on escape key
+    // Keep the existing event listeners for popup removal
     document.addEventListener("mousedown", (event) => {
         if (popup && !popup.contains(event.target)) {
             removeExistingPopup();
