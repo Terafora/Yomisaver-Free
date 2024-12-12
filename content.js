@@ -212,6 +212,7 @@ async function traverseDOM(root) {
 
 // Update selection listener to show a popup with word info
 let popup = null;
+let activePopupTimer = null;
 
 function removeExistingPopup() {
     if (popup) {
@@ -313,7 +314,13 @@ async function addSelectionListener() {
             const text = getCleanTextFromElement(element);
             if (!text) return;
 
+            // Clear any existing popup and timer
+            if (activePopupTimer) {
+                clearTimeout(activePopupTimer);
+                activePopupTimer = null;
+            }
             removeExistingPopup();
+
             const wordInfo = await lookupWord(text);
             
             if (wordInfo) {
@@ -326,6 +333,12 @@ async function addSelectionListener() {
                 if (popupRect.bottom > viewportHeight) {
                     popup.style.top = `${rect.top + window.scrollY - popupRect.height - 10}px`;
                 }
+
+                // Set new timer for this popup
+                activePopupTimer = setTimeout(() => {
+                    removeExistingPopup();
+                    activePopupTimer = null;
+                }, 3000); // Popup will auto-close after 3 seconds unless mouse enters it
 
                 chrome.runtime.sendMessage({
                     action: "saveVocabulary",
