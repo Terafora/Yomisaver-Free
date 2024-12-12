@@ -2,6 +2,7 @@ const kuromoji = require('kuromoji');
 
 // Constants and cache
 let tokenizer = null;
+let fadeTimer = null; // Add to top of content.js with other state variables
 
 // Simplified initialization function
 async function initializeTokenizer() {
@@ -214,30 +215,79 @@ async function traverseDOM(root) {
 let popup = null;
 let activePopupTimer = null;
 
+// Update removeExistingPopup function
 function removeExistingPopup() {
     if (popup) {
-        popup.remove();
-        popup = null;
+        if (fadeTimer) {
+            clearTimeout(fadeTimer);
+        }
+        if (activePopupTimer) {
+            clearTimeout(activePopupTimer);
+            activePopupTimer = null;
+        }
+        popup.classList.add('fade-out');
+        fadeTimer = setTimeout(() => {
+            popup.remove();
+            popup = null;
+            fadeTimer = null;
+        }, 300); // Faster fade out
     }
 }
 
-// Move createPopup to the top level so it can be shared
+// Add helper function to filter tags
+function filterWaniKaniTags(tags) {
+    return tags.filter(tag => !tag.startsWith('wanikani'));
+}
+
+// Add helper to get sentence context
+function getSentenceContext(word) {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return "";
+
+    const range = selection.getRangeAt(0);
+    const startNode = range.startContainer;
+    const textNode = startNode.nodeType === Node.TEXT_NODE ? startNode : startNode.firstChild;
+    
+    if (!textNode) return "";
+
+    // Get parent paragraph or similar container
+    const container = textNode.parentElement?.closest('p, div, td, li') || textNode.parentElement;
+    if (!container) return "";
+
+    const text = container.textContent;
+    const sentences = text.split(/[。.！!？?]/g);
+    
+    // Find sentence containing the word
+    const sentenceWithWord = sentences.find(s => s.includes(word)) || "";
+    return sentenceWithWord.trim();
+}
+
+// Modify createPopup function to include sentence context
 function createPopup(wordInfo, rect) {
+    if (fadeTimer) {
+        clearTimeout(fadeTimer);
+        fadeTimer = null;
+    }
+    
     const popup = document.createElement('div');
-    popup.className = 'yomisaver-popup';
+    popup.className = 'yomisaver-popup fade-in';
+
+    // Get surrounding sentence context
+    const sentence = getSentenceContext(wordInfo.word);
 
     function cleanText(text) {
-        return text.replace(/<[^>]+>/g, ""); // Strip HTML tags
+        return text.replace(/<[^>]+>/g, "");
     }
 
     const cleanWord = cleanText(wordInfo.word);
     
-    // Format meanings with their grammatical info
+    // Format meanings with filtered tags
     const meaningsHTML = wordInfo.meanings.map(meaning => {
         const pos = meaning.partOfSpeech.length ? 
             `<span class="pos">${meaning.partOfSpeech.join(', ')}</span>` : '';
-        const tags = meaning.tags.length ? 
-            `<span class="tags">${meaning.tags.join(', ')}</span>` : '';
+        const filteredTags = filterWaniKaniTags(meaning.tags);
+        const tags = filteredTags.length ? 
+            `<span class="tags">${filteredTags.join(', ')}</span>` : '';
         const info = meaning.info.length ? 
             `<span class="info">${meaning.info.join(', ')}</span>` : '';
         return `
@@ -258,8 +308,39 @@ function createPopup(wordInfo, rect) {
             ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
             ${jlptInfo}
         </div>
-        <div class="meanings-container">${meaningsHTML}</div>
+        <div class="meanings-container">
+            ${meaningsHTML}
+            <button class="save-vocab-btn">Save to Flashcards</button>
+        </div>
     `;
+
+    // Update save button click handler
+    const saveBtn = popup.querySelector('.save-vocab-btn');
+    saveBtn.addEventListener('click', () => {
+        chrome.runtime.sendMessage({
+            action: "saveVocabulary",
+            text: cleanWord,
+            sentence: sentence,
+            reading: wordInfo.reading,
+            wordInfo: wordInfo
+        });
+        saveBtn.textContent = 'Saved!';
+        saveBtn.disabled = true;
+    });
+
+    // Add mouseenter handler to clear auto-close timer
+    popup.addEventListener('mouseenter', () => {
+        if (activePopupTimer) {
+            clearTimeout(activePopupTimer);
+            activePopupTimer = null;
+        }
+        if (fadeTimer) {
+            clearTimeout(fadeTimer);
+            fadeTimer = null;
+            popup.classList.remove('fade-out');
+            popup.classList.add('fade-in');
+        }
+    });
 
     // Add to document first so we can measure it
     document.body.appendChild(popup);
@@ -289,6 +370,30 @@ function createPopup(wordInfo, rect) {
     // Apply position
     popup.style.top = `${top}px`;
     popup.style.left = `${left}px`;
+
+    // Add mouseenter/mouseleave handlers
+    popup.addEventListener('mouseenter', () => {
+        if (activePopupTimer) {
+            clearTimeout(activePopupTimer);
+            activePopupTimer = null;
+        }
+    });
+
+    popup.addEventListener('mouseleave', (event) => {
+        // Check if moving to buffer zone
+        const rect = popup.getBoundingClientRect();
+        const buffer = 30; // Match CSS buffer zone
+        if (event.clientX >= rect.left - buffer && 
+            event.clientX <= rect.right + buffer &&
+            event.clientY >= rect.top - buffer && 
+            event.clientY <= rect.bottom + buffer) {
+            return;
+        }
+        
+        activePopupTimer = setTimeout(() => {
+            removeExistingPopup();
+        }, 300); // Shorter delay before fade out
+    });
     
     return popup;
 }
@@ -308,7 +413,7 @@ function debounce(func, wait) {
 
 // Update the selection listener to use hover
 async function addSelectionListener() {
-    // Debounced version of popup creation
+    // Increase debounce delay
     const debouncedShowPopup = debounce(async (element, rect) => {
         try {
             // Add highlight class to hovered element
@@ -345,19 +450,13 @@ async function addSelectionListener() {
                 activePopupTimer = setTimeout(() => {
                     removeExistingPopup();
                     activePopupTimer = null;
-                }, 3000); // Popup will auto-close after 3 seconds unless mouse enters it
-
-                chrome.runtime.sendMessage({
-                    action: "saveVocabulary",
-                    text: text,
-                    wordInfo: wordInfo
-                });
+                }, 5000); // Increased from 3000 to 5000ms
             }
         } catch (error) {
             console.error("Error showing popup:", error);
             removeExistingPopup();
         }
-    }, 200); // 200ms delay
+    }, 100); // Reduced from 200 to 100ms for faster response
 
     // Add hover listener to document
     document.addEventListener("mouseover", (event) => {
@@ -374,7 +473,7 @@ async function addSelectionListener() {
         const target = event.target;
         const relatedTarget = event.relatedTarget;
         
-        // Remove highlight from previous word
+        // Remove highlight from word
         const wordElement = target.classList.contains('yomisaver-word') ? 
             target : target.closest('.yomisaver-word');
         if (wordElement) {
@@ -383,14 +482,23 @@ async function addSelectionListener() {
 
         if (!popup) return;
         
-        // Don't remove popup if moving to the popup itself
-        if (relatedTarget && (popup.contains(relatedTarget) || popup === relatedTarget)) {
+        // Don't remove if moving to popup or its buffer zone
+        if (relatedTarget && (
+            popup.contains(relatedTarget) || 
+            popup === relatedTarget ||
+            (relatedTarget.closest && relatedTarget.closest('.yomisaver-popup'))
+        )) {
+            if (fadeTimer) {
+                clearTimeout(fadeTimer);
+                fadeTimer = null;
+                popup.classList.remove('fade-out');
+                popup.classList.add('fade-in');
+            }
             return;
         }
 
-        // Remove popup if leaving a yomisaver element
-        if (target.classList.contains('yomisaver-word') || 
-            target.closest('.yomisaver-word')) {
+        // Only start fade if we're actually leaving the popup area
+        if (!popup.contains(target)) {
             removeExistingPopup();
         }
     });
