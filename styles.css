@@ -145,3 +145,19 @@ rt {
     display: inline-block;
     margin-top: 4px;
 }
+
+/* Add highlight styles */
+.yomisaver-word {
+    transition: all 0.2s ease-in-out;
+}
+
+.yomisaver-word.highlight {
+    background-color: rgba(44, 76, 156, 0.2); /* Light blue background */
+    border-radius: 2px;
+    box-shadow: 0 0 0 2px rgba(44, 76, 156, 0.2);
+}
+
+/* Ensure furigana remains visible on highlight */
+.yomisaver-word.highlight rt {
+    color: #666;
+}

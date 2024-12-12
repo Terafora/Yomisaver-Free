@@ -311,6 +311,13 @@ async function addSelectionListener() {
     // Debounced version of popup creation
     const debouncedShowPopup = debounce(async (element, rect) => {
         try {
+            // Add highlight class to hovered element
+            const wordElement = element.classList.contains('yomisaver-word') ? 
+                element : element.closest('.yomisaver-word');
+            if (wordElement) {
+                wordElement.classList.add('highlight');
+            }
+
             const text = getCleanTextFromElement(element);
             if (!text) return;
 
@@ -362,28 +369,28 @@ async function addSelectionListener() {
         }
     });
 
-    // Remove popup when mouse leaves word
+    // Remove popup and highlight when mouse leaves word
     document.addEventListener("mouseout", (event) => {
         const target = event.target;
         const relatedTarget = event.relatedTarget;
         
+        // Remove highlight from previous word
+        const wordElement = target.classList.contains('yomisaver-word') ? 
+            target : target.closest('.yomisaver-word');
+        if (wordElement) {
+            wordElement.classList.remove('highlight');
+        }
+
         if (!popup) return;
         
-        // Don't remove if moving to the popup itself
+        // Don't remove popup if moving to the popup itself
         if (relatedTarget && (popup.contains(relatedTarget) || popup === relatedTarget)) {
             return;
         }
 
-        // Only remove if leaving a yomisaver element
+        // Remove popup if leaving a yomisaver element
         if (target.classList.contains('yomisaver-word') || 
             target.closest('.yomisaver-word')) {
-            removeExistingPopup();
-        }
-    });
-
-    // Keep escape key handler
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
             removeExistingPopup();
         }
     });
