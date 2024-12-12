@@ -63,6 +63,22 @@ function getCleanSelectedText() {
     return container.textContent.trim();
 }
 
+// Add this helper function to get clean text from elements
+function getCleanTextFromElement(element) {
+    // If element is or is inside a ruby element, get only the base text
+    const rubyElement = element.closest('ruby');
+    if (rubyElement) {
+        // Clone the ruby element to avoid modifying the DOM
+        const clone = rubyElement.cloneNode(true);
+        // Remove all rt elements
+        clone.querySelectorAll('rt').forEach(rt => rt.remove());
+        return clone.textContent.trim();
+    }
+    
+    // For non-ruby elements, just get the text content
+    return element.textContent.trim();
+}
+
 // Simplified furigana injection
 async function injectFurigana(node) {
     if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) return;
@@ -276,26 +292,34 @@ function createPopup(wordInfo, rect) {
     return popup;
 }
 
-// Modify the addSelectionListener function
+// Add a debounce helper at the top level
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Update the selection listener to use hover
 async function addSelectionListener() {
-    document.addEventListener("mouseup", async () => {
+    // Debounced version of popup creation
+    const debouncedShowPopup = debounce(async (element, rect) => {
         try {
-            const selectedText = getCleanSelectedText();
+            const text = getCleanTextFromElement(element);
+            if (!text) return;
+
             removeExistingPopup();
-
-            if (!selectedText || selectedText.length === 0) return;
-
-            // Get the range for positioning
-            const range = window.getSelection().getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-
-            // Try to get word info with the cleaned text
-            const wordInfo = await lookupWord(selectedText);
+            const wordInfo = await lookupWord(text);
+            
             if (wordInfo) {
                 popup = createPopup(wordInfo, rect);
                 document.body.appendChild(popup);
 
-                // Adjust popup position if needed
                 const popupRect = popup.getBoundingClientRect();
                 const viewportHeight = window.innerHeight;
                 
@@ -305,23 +329,46 @@ async function addSelectionListener() {
 
                 chrome.runtime.sendMessage({
                     action: "saveVocabulary",
-                    text: selectedText,
+                    text: text,
                     wordInfo: wordInfo
                 });
             }
         } catch (error) {
-            console.error("Error in addSelectionListener:", error);
+            console.error("Error showing popup:", error);
+            removeExistingPopup();
+        }
+    }, 200); // 200ms delay
+
+    // Add hover listener to document
+    document.addEventListener("mouseover", (event) => {
+        const target = event.target;
+        if (target.classList.contains('yomisaver-word') || 
+            target.closest('.yomisaver-word')) {
+            const rect = target.getBoundingClientRect();
+            debouncedShowPopup(target, rect);
+        }
+    });
+
+    // Remove popup when mouse leaves word
+    document.addEventListener("mouseout", (event) => {
+        const target = event.target;
+        const relatedTarget = event.relatedTarget;
+        
+        if (!popup) return;
+        
+        // Don't remove if moving to the popup itself
+        if (relatedTarget && (popup.contains(relatedTarget) || popup === relatedTarget)) {
+            return;
+        }
+
+        // Only remove if leaving a yomisaver element
+        if (target.classList.contains('yomisaver-word') || 
+            target.closest('.yomisaver-word')) {
             removeExistingPopup();
         }
     });
 
-    // Keep the existing event listeners for popup removal
-    document.addEventListener("mousedown", (event) => {
-        if (popup && !popup.contains(event.target)) {
-            removeExistingPopup();
-        }
-    });
-
+    // Keep escape key handler
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
             removeExistingPopup();
