@@ -42,3 +42,12 @@ if (document.readyState === 'loading') {
 } else {
     initialize();
 }
+
+// Add message listener for size updates
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'updatePopupSize') {
+        document.documentElement.style.setProperty('--popup-scale', message.size);
+    } else if (message.action === 'updateFontSize') {
+        document.documentElement.style.setProperty('--font-scale', message.size);
+    }
+});

@@ -16,17 +16,20 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             debug('Tab clicked: ' + tab.dataset.tab);
             
-            // Remove active class from all tabs and contents
-            document.querySelectorAll('.yomisaver-tab, .yomisaver-tab-content').forEach(el => {
-                el.classList.remove('active');
+            // Hide all content sections
+            document.querySelectorAll('.yomisaver-tab-content').forEach(content => {
+                content.style.display = 'none';
             });
             
-            // Add active class to clicked tab and corresponding content
+            // Remove active class from all tabs
+            document.querySelectorAll('.yomisaver-tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            
+            // Show selected content and activate tab
+            const tabId = tab.dataset.tab;
+            document.getElementById(tabId).style.display = 'block';
             tab.classList.add('active');
-            const content = document.getElementById(tab.dataset.tab);
-            if (content) {
-                content.classList.add('active');
-            }
         });
     });
 
@@ -36,13 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const vocabContainer = document.getElementById('vocab-container');
         
         if (vocabList.length === 0) {
-            vocabContainer.innerHTML = '<div class="coming-soon"><p>No flashcards saved yet!</p></div>';
+            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
             return;
         }
 
         vocabList.forEach(entry => {
             const entryElement = document.createElement('div');
-            entryElement.className = 'vocab-entry';
+            entryElement.className = 'yomisaver-vocab-entry';
             entryElement.innerHTML = `
                 <h3>${entry.word}</h3>
                 ${entry.reading ? `<p class="reading">${entry.reading}</p>` : ''}
@@ -56,17 +59,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const popupSize = document.getElementById('popupSize');
     const fontSize = document.getElementById('fontSize');
 
+    // Update size functions
+    function updatePopupSize(value) {
+        const size = value / 100;
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'updatePopupSize',
+                size: size
+            });
+        });
+    }
+
+    function updateFontSize(value) {
+        const size = value / 100;
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'updateFontSize',
+                size: size
+            });
+        });
+    }
+
+    // Add input handlers for real-time updates
+    popupSize.addEventListener('input', (e) => {
+        updatePopupSize(e.target.value);
+    });
+
+    fontSize.addEventListener('input', (e) => {
+        updateFontSize(e.target.value);
+    });
+
+    // Save settings on change
     popupSize.addEventListener('change', (e) => {
-        chrome.storage.local.set({ 'popupSize': e.target.value });
+        chrome.storage.sync.set({ 'popupSize': e.target.value });
     });
 
     fontSize.addEventListener('change', (e) => {
-        chrome.storage.local.set({ 'fontSize': e.target.value });
+        chrome.storage.sync.set({ 'fontSize': e.target.value });
     });
 
     // Load saved settings
-    chrome.storage.local.get(['popupSize', 'fontSize'], (data) => {
-        if (data.popupSize) popupSize.value = data.popupSize;
-        if (data.fontSize) fontSize.value = data.fontSize;
+    chrome.storage.sync.get(['popupSize', 'fontSize'], (data) => {
+        if (data.popupSize) {
+            popupSize.value = data.popupSize;
+            updatePopupSize(data.popupSize);
+        }
+        if (data.fontSize) {
+            fontSize.value = data.fontSize;
+            updateFontSize(data.fontSize);
+        }
     });
 });

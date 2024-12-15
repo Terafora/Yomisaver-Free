@@ -25,6 +25,11 @@ rt {
     pointer-events: none;
 }
 
+:root {
+    --popup-scale: 1;
+    --font-scale: 1;
+}
+
 .yomisaver-popup {
     position: fixed;
     background: white;
@@ -43,6 +48,9 @@ rt {
     word-wrap: break-word;
     scrollbar-width: thin;
     scrollbar-color: rgba(44, 76, 156, 0.5) rgba(255, 255, 255, 0.1);
+    transform: scale(var(--popup-scale));
+    transform-origin: top left;
+    font-size: calc(14px * var(--font-scale));
 }
 
 .yomisaver-popup.hiding {
