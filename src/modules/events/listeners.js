@@ -4,6 +4,20 @@ import { getCleanTextFromElement } from '../utils/dom';
 import { popupManager, removeExistingPopup } from '../popup/popupUtils';
 
 export function addSelectionListener() {
+    let hoverTimer = null;
+    let activeElement = null;
+
+    function clearHoverState() {
+        if (activeElement) {
+            activeElement.classList.remove('active');
+            activeElement = null;
+        }
+        if (hoverTimer) {
+            clearTimeout(hoverTimer);
+            hoverTimer = null;
+        }
+    }
+
     const debouncedShowPopup = debounce(async (element, rect) => {
         try {
             const text = getCleanTextFromElement(element);
@@ -22,22 +36,39 @@ export function addSelectionListener() {
         }
     }, 100);
 
+    // Mouse leave handler
+    document.addEventListener("mouseout", (event) => {
+        const target = event.target;
+        if (target.classList.contains('yomisaver-word') || 
+            target.closest('.yomisaver-word')) {
+            clearHoverState();
+        }
+    });
+
+    // Hover handler with delay
+    document.addEventListener("mouseover", (event) => {
+        const target = event.target;
+        const wordElement = target.classList.contains('yomisaver-word') ? 
+            target : target.closest('.yomisaver-word');
+
+        if (wordElement) {
+            clearHoverState();
+            activeElement = wordElement;
+            wordElement.classList.add('active');
+            
+            hoverTimer = setTimeout(() => {
+                const rect = wordElement.getBoundingClientRect();
+                debouncedShowPopup(wordElement, rect);
+            }, 500); // 0.5 second delay
+        }
+    });
+
     // Global click handler for outside clicks
     document.addEventListener('click', (e) => {
         const currentPopup = popupManager.getPopup();
         if (currentPopup && !currentPopup.contains(e.target)) {
-            console.log('Outside click detected');
+            clearHoverState();
             popupManager.removeExistingPopup();
-        }
-    });
-
-    // Hover handler
-    document.addEventListener("mouseover", (event) => {
-        const target = event.target;
-        if (target.classList.contains('yomisaver-word') || 
-            target.closest('.yomisaver-word')) {
-            const rect = target.getBoundingClientRect();
-            debouncedShowPopup(target, rect);
         }
     });
 }
