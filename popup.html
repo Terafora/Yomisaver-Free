@@ -2,16 +2,49 @@
 <html>
 <head>
     <title>YomiSaver</title>
-    <style>
-        .vocab-entry {
-            border-bottom: 1px solid #ccc;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <div id="vocab-container"></div>
-    <script src="popup.js"></script>
+<body class="yomisaver-menu">
+    <div class="yomisaver-tab-container">
+        <button class="yomisaver-tab active" data-tab="flashcards">Flashcards</button>
+        <button class="yomisaver-tab" data-tab="settings">Settings</button>
+        <button class="yomisaver-tab" data-tab="jlpt">JLPT Filter</button>
+        <button class="yomisaver-tab" data-tab="premium">Premium</button>
+    </div>
+
+    <!-- Add debug info -->
+    <div id="debug" style="display:none;"></div>
+
+    <div id="flashcards" class="yomisaver-tab-content active">
+        <div id="vocab-container"></div>
+    </div>
+
+    <div id="settings" class="yomisaver-tab-content">
+        <div class="yomisaver-settings-group">
+            <h3>Popup Size</h3>
+            <input type="range" class="yomisaver-range-control" id="popupSize" min="80" max="120" value="100">
+        </div>
+        <div class="yomisaver-settings-group">
+            <h3>Font Size</h3>
+            <input type="range" class="yomisaver-range-control" id="fontSize" min="80" max="120" value="100">
+        </div>
+    </div>
+
+    <div id="jlpt" class="yomisaver-tab-content">
+        <div class="yomisaver-coming-soon">
+            <h3>Coming Soon</h3>
+            <p>JLPT filtering options will be available in a future update!</p>
+        </div>
+    </div>
+
+    <div id="premium" class="yomisaver-tab-content">
+        <div class="yomisaver-coming-soon">
+            <h3>YomiSaver Premium</h3>
+            <p>Unlock advanced features and support development!</p>
+            <button class="yomisaver-premium-button">Go Premium</button>
+        </div>
+    </div>
+
+    <script src="popup.bundle.js"></script>
 </body>
 </html>

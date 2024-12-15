@@ -19,31 +19,55 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
+let connectionAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 3;
+
+// Add connection recovery
+chrome.runtime.onStartup.addListener(() => {
+    connectionAttempts = 0;
+});
+
 // Add API proxy handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "lookupWord") {
-        fetch(`https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(message.word)}`, {
-            method: 'GET',
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'YomiSaver-Extension'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => sendResponse({ success: true, data }))
-        .catch(error => {
-            console.error('Proxy fetch error:', error);
-            sendResponse({ success: false, error: error.message });
-        });
+        handleWordLookup(message, sender, sendResponse);
         return true; // Keep the message channel open for async response
     }
     // ...existing message handlers...
 });
+
+async function handleWordLookup(message, sender, sendResponse) {
+    try {
+        const response = await fetch(
+            `https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(message.word)}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'YomiSaver-Extension'
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        sendResponse({ success: true, data });
+        connectionAttempts = 0;
+    } catch (error) {
+        console.error('Proxy fetch error:', error);
+        
+        if (connectionAttempts < MAX_RECONNECT_ATTEMPTS) {
+            connectionAttempts++;
+            // Retry after delay
+            setTimeout(() => handleWordLookup(message, sender, sendResponse), 1000);
+        } else {
+            sendResponse({ success: false, error: error.message });
+        }
+    }
+}
 
 // Function to save vocabulary
 function saveVocabulary(word, sentence, reading, wordInfo) {

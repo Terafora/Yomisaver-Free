@@ -301,3 +301,122 @@ rt {
 .yomisaver-popup::-webkit-scrollbar-thumb:hover {
     background-color: rgba(44, 76, 156, 0.7);
 }
+
+/* Popup Menu Styles */
+.yomisaver-menu {
+    width: 350px;
+    min-height: 400px;
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Menu Styling Update */
+.yomisaver-tab-container {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    background: #2c4c9c;
+    padding: 5px 5px 0;
+    border-radius: 4px 4px 0 0;
+}
+
+.yomisaver-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+    flex: 1;
+    transition: all 0.3s ease;
+    border-radius: 4px 4px 0 0;
+    margin: 0 2px;
+}
+
+.yomisaver-tab:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.yomisaver-tab.active {
+    background: white;
+    color: #2c4c9c;
+}
+
+.yomisaver-tab-content {
+    background: white;
+    padding: 15px;
+    border-radius: 0 0 4px 4px;
+}
+
+.yomisaver-vocab-entry {
+    background: #f5f7fa;
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.yomisaver-vocab-entry h3 {
+    color: #2c4c9c;
+    margin: 0 0 5px;
+}
+
+.yomisaver-vocab-entry .reading {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.yomisaver-vocab-entry .sentence {
+    font-size: 0.9em;
+    color: #444;
+    margin: 0;
+}
+
+.yomisaver-tab-content.active {
+    display: block;
+}
+
+.yomisaver-vocab-entry {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+}
+
+.yomisaver-settings-group {
+    margin-bottom: 20px;
+}
+
+.yomisaver-settings-group h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.yomisaver-range-control {
+    width: 100%;
+    margin: 10px 0;
+}
+
+.yomisaver-coming-soon {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+}
+
+.yomisaver-premium-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(45deg, #2c4c9c, #3a5dbd);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.yomisaver-premium-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}

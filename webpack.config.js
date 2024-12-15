@@ -6,10 +6,11 @@ module.exports = {
     mode: 'production', // Change to production mode
     devtool: 'source-map', // Use source-map instead of eval
     entry: {
-        content: './src/content.js'  // Update path to match actual location
+        content: './src/content.js',
+        popup: './popup.js'  // Add popup entry
     },
     output: {
-        filename: 'content.bundle.js',
+        filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist')
     },
     resolve: {

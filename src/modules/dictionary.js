@@ -4,10 +4,17 @@ export async function lookupWord(word) {
     if (wordCache.has(word)) return wordCache.get(word);
     
     try {
-        const response = await new Promise((resolve) => {
+        const response = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage(
                 { action: "lookupWord", word },
-                response => resolve(response)
+                response => {
+                    if (chrome.runtime.lastError) {
+                        // Handle disconnection
+                        reject(new Error(chrome.runtime.lastError.message));
+                        return;
+                    }
+                    resolve(response);
+                }
             );
         });
 
@@ -29,6 +36,11 @@ export async function lookupWord(word) {
         return wordInfo;
     } catch (error) {
         console.error('Error looking up word:', error);
+        // Try to reconnect or reload extension
+        if (error.message.includes('Extension context invalidated')) {
+            // Attempt to reload the extension context
+            window.location.reload();
+        }
         return null;
     }
 }
