@@ -10,15 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Hide all tabs except flashcards initially
+    document.querySelectorAll('.yomisaver-tab-content:not(#flashcards)').forEach(content => {
+        content.classList.add('hidden');
+    });
+
     // Tab switching
     document.querySelectorAll('.yomisaver-tab').forEach(tab => {
         debug('Found tab: ' + tab.dataset.tab);
         tab.addEventListener('click', () => {
             debug('Tab clicked: ' + tab.dataset.tab);
             
-            // Hide all content sections
+            // Remove active and hidden classes from all tabs
             document.querySelectorAll('.yomisaver-tab-content').forEach(content => {
-                content.style.display = 'none';
+                content.classList.remove('active');
+                content.classList.add('hidden');
             });
             
             // Remove active class from all tabs
@@ -28,7 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Show selected content and activate tab
             const tabId = tab.dataset.tab;
-            document.getElementById(tabId).style.display = 'block';
+            const content = document.getElementById(tabId);
+            content.classList.remove('hidden');
+            content.classList.add('active');
             tab.classList.add('active');
         });
     });

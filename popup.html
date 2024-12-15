@@ -12,38 +12,40 @@
         <button class="yomisaver-tab" data-tab="premium">Premium</button>
     </div>
 
+    <div class="yomisaver-content-container">
+        <div id="flashcards" class="yomisaver-tab-content active">
+            <div id="vocab-container"></div>
+        </div>
+
+        <div id="settings" class="yomisaver-tab-content">
+            <div class="yomisaver-settings-group">
+                <h3>Popup Size</h3>
+                <input type="range" class="yomisaver-range-control" id="popupSize" min="80" max="120" value="100">
+            </div>
+            <div class="yomisaver-settings-group">
+                <h3>Font Size</h3>
+                <input type="range" class="yomisaver-range-control" id="fontSize" min="80" max="120" value="100">
+            </div>
+        </div>
+
+        <div id="jlpt" class="yomisaver-tab-content">
+            <div class="yomisaver-coming-soon">
+                <h3>Coming Soon</h3>
+                <p>JLPT filtering options will be available in a future update!</p>
+            </div>
+        </div>
+
+        <div id="premium" class="yomisaver-tab-content">
+            <div class="yomisaver-coming-soon">
+                <h3>YomiSaver Premium</h3>
+                <p>Unlock advanced features and support development!</p>
+                <button class="yomisaver-premium-button">Go Premium</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add debug info -->
     <div id="debug" style="display:none;"></div>
-
-    <div id="flashcards" class="yomisaver-tab-content active">
-        <div id="vocab-container"></div>
-    </div>
-
-    <div id="settings" class="yomisaver-tab-content">
-        <div class="yomisaver-settings-group">
-            <h3>Popup Size</h3>
-            <input type="range" class="yomisaver-range-control" id="popupSize" min="80" max="120" value="100">
-        </div>
-        <div class="yomisaver-settings-group">
-            <h3>Font Size</h3>
-            <input type="range" class="yomisaver-range-control" id="fontSize" min="80" max="120" value="100">
-        </div>
-    </div>
-
-    <div id="jlpt" class="yomisaver-tab-content">
-        <div class="yomisaver-coming-soon">
-            <h3>Coming Soon</h3>
-            <p>JLPT filtering options will be available in a future update!</p>
-        </div>
-    </div>
-
-    <div id="premium" class="yomisaver-tab-content">
-        <div class="yomisaver-coming-soon">
-            <h3>YomiSaver Premium</h3>
-            <p>Unlock advanced features and support development!</p>
-            <button class="yomisaver-premium-button">Go Premium</button>
-        </div>
-    </div>
 
     <script src="popup.bundle.js"></script>
 </body>

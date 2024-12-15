@@ -312,11 +312,31 @@ rt {
 
 /* Popup Menu Styles */
 .yomisaver-menu {
-    width: 350px;
-    min-height: 400px;
+    width: auto;
+    min-width: 350px;
     margin: 0;
     padding: 0;
     font-family: system-ui, -apple-system, sans-serif;
+}
+
+.yomisaver-content-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.yomisaver-tab-content {
+    display: none;
+    background: white;
+    padding: 15px;
+    border-radius: 0 0 4px 4px;
+}
+
+.yomisaver-tab-content.active {
+    display: block;
+}
+
+.yomisaver-tab-content.hidden {
+    display: none;
 }
 
 /* Menu Styling Update */
