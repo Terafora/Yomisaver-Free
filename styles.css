@@ -210,3 +210,50 @@ rt {
 .yomisaver-popup:hover {
     opacity: 1;
 }
+
+.yomisaver-popup .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.yomisaver-popup .close-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.yomisaver-popup .close-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: transparent;
+    border: none;
+    color: #999;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.yomisaver-popup .close-button:hover {
+    background: rgba(0,0,0,0.1);
+    color: #666;
+}

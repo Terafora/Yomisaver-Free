@@ -2,7 +2,59 @@ const kuromoji = require('kuromoji');
 
 // Constants and cache
 let tokenizer = null;
-let fadeTimer = null; // Add to top of content.js with other state variables
+let fadeTimer = null;
+let isInitializing = false;
+
+// Add processed marker check
+function isPageProcessed() {
+    return document.documentElement.hasAttribute('data-yomisaver-processed');
+}
+
+function markPageAsProcessed() {
+    document.documentElement.setAttribute('data-yomisaver-processed', 'true');
+}
+
+// Function to check if the page language is set to Japanese
+function isJapanesePage() {
+    const htmlLang = document.documentElement.lang;
+    return htmlLang && htmlLang.startsWith('ja');
+}
+
+// Main initialization function with guard
+async function initialize() {
+    if (isInitializing || document.documentElement.hasAttribute('data-yomisaver-processed')) {
+        console.log("YomiSaver: Already processing or processed. Skipping.");
+        return;
+    }
+
+    if (!isJapanesePage()) {
+        console.log("YomiSaver: Page language is not set to Japanese. Exiting.");
+        return;
+    }
+
+    isInitializing = true;
+
+    try {
+        console.log("Starting initialization...");
+        await initializeTokenizer();
+        console.log("Processing document body...");
+        await traverseDOM(document.body);
+        document.documentElement.setAttribute('data-yomisaver-processed', 'true');
+        addSelectionListener();
+        console.log("Initial processing complete");
+    } catch (error) {
+        console.error("Error in initialization:", error);
+    } finally {
+        isInitializing = false;
+    }
+}
+
+// Keep only one initialization entry point
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+} else {
+    initialize();
+}
 
 // Simplified initialization function
 async function initializeTokenizer() {
@@ -109,26 +161,6 @@ async function injectFurigana(node) {
     } catch (error) {
         console.error('Error injecting furigana:', error);
     }
-}
-
-// Initialize and process
-async function initAndProcess() {
-    try {
-        console.log("Starting initialization...");
-        await initializeTokenizer();
-        console.log("Processing document body...");
-        await traverseDOM(document.body);
-        console.log("Initial processing complete");
-    } catch (error) {
-        console.error("Error in initialization:", error);
-    }
-}
-
-// Start processing when ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAndProcess);
-} else {
-    initAndProcess();
 }
 
 // Constants
@@ -262,7 +294,7 @@ function getSentenceContext(word) {
     return sentenceWithWord.trim();
 }
 
-// Modify createPopup function to include sentence context
+// Modify createPopup function to include sentence context and close button
 function createPopup(wordInfo, rect) {
     if (fadeTimer) {
         clearTimeout(fadeTimer);
@@ -303,6 +335,7 @@ function createPopup(wordInfo, rect) {
         `<div class="jlpt">${wordInfo.jlpt.join(', ').toUpperCase()}</div>` : '';
 
     popup.innerHTML = `
+        <button class="close-button" aria-label="Close">×</button>
         <div class="header">
             <div class="word">${cleanWord}</div>
             ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
@@ -314,7 +347,20 @@ function createPopup(wordInfo, rect) {
         </div>
     `;
 
-    // Update save button click handler
+    // Update close button handler
+    const closeButton = popup.querySelector('.close-button');
+    closeButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        if (popup) {
+            popup.classList.add('fade-out');
+            setTimeout(() => {
+                popup.remove();
+                popup = null;
+            }, 300);
+        }
+    });
+
+    // Add save button click handler
     const saveBtn = popup.querySelector('.save-vocab-btn');
     saveBtn.addEventListener('click', () => {
         chrome.runtime.sendMessage({
