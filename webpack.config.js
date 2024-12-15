@@ -5,7 +5,9 @@ const CopyPlugin = require('copy-webpack-plugin');
 module.exports = {
     mode: 'production', // Change to production mode
     devtool: 'source-map', // Use source-map instead of eval
-    entry: './content.js',
+    entry: {
+        content: './src/content.js'  // Update path to match actual location
+    },
     output: {
         filename: 'content.bundle.js',
         path: path.resolve(__dirname, 'dist')
