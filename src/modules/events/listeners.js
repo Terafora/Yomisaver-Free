@@ -1,8 +1,7 @@
 import { lookupWord } from '../dictionary';
 import { createPopup } from '../popup/popup';
 import { getCleanTextFromElement } from '../utils/dom';
-
-let popup = null;
+import { popupManager, removeExistingPopup } from '../popup/popupUtils';
 
 export function addSelectionListener() {
     const debouncedShowPopup = debounce(async (element, rect) => {
@@ -12,13 +11,27 @@ export function addSelectionListener() {
 
             const wordInfo = await lookupWord(text);
             if (wordInfo) {
-                popup = createPopup(wordInfo, rect);
+                if (popupManager.getPopup()) {
+                    popupManager.removeExistingPopup();
+                }
+                const newPopup = createPopup(wordInfo, rect);
+                popupManager.setPopup(newPopup);
             }
         } catch (error) {
             console.error("Error showing popup:", error);
         }
     }, 100);
 
+    // Global click handler for outside clicks
+    document.addEventListener('click', (e) => {
+        const currentPopup = popupManager.getPopup();
+        if (currentPopup && !currentPopup.contains(e.target)) {
+            console.log('Outside click detected');
+            popupManager.removeExistingPopup();
+        }
+    });
+
+    // Hover handler
     document.addEventListener("mouseover", (event) => {
         const target = event.target;
         if (target.classList.contains('yomisaver-word') || 

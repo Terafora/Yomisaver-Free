@@ -1,26 +1,44 @@
-let popup = null;
-let fadeTimer = null;
-let activePopupTimer = null;
+class PopupManager {
+    constructor() {
+        this.popup = null;
+        this.fadeTimer = null;
+        this.activePopupTimer = null;
+    }
 
-export function removeExistingPopup() {
-    if (popup) {
-        popup.classList.add('fade-out');
+    setPopup(newPopup) {
+        this.popup = newPopup;
+    }
+
+    getPopup() {
+        return this.popup;
+    }
+
+    removeExistingPopup() {
+        if (!this.popup) return;
+        
+        console.log('Removing popup');
+        this.clearTimers();
+        
+        this.popup.classList.add('fade-out');
         setTimeout(() => {
-            popup?.remove();
-            popup = null;
+            if (this.popup && this.popup.parentNode) {
+                this.popup.remove();
+            }
+            this.popup = null;
         }, 300);
     }
+
+    clearTimers() {
+        if (this.fadeTimer) {
+            clearTimeout(this.fadeTimer);
+            this.fadeTimer = null;
+        }
+        if (this.activePopupTimer) {
+            clearTimeout(this.activePopupTimer);
+            this.activePopupTimer = null;
+        }
+    }
 }
 
-export function clearTimers() {
-    if (fadeTimer) {
-        clearTimeout(fadeTimer);
-        fadeTimer = null;
-    }
-    if (activePopupTimer) {
-        clearTimeout(activePopupTimer);
-        activePopupTimer = null;
-    }
-}
-
-export { popup, fadeTimer, activePopupTimer };
+export const popupManager = new PopupManager();
+export const removeExistingPopup = () => popupManager.removeExistingPopup();

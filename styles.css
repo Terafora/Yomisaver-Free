@@ -26,15 +26,14 @@ rt {
 }
 
 .yomisaver-popup {
-    position: fixed;  /* Changed from absolute to fixed */
+    position: fixed;
     background: white;
     border: 1px solid #ccc;
     border-radius: 4px;
     padding: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    z-index: 999999;  /* Increased z-index */
+    z-index: 999999;
     max-width: 300px;
-    opacity: 0;
     transition: opacity 0.3s ease-in-out; /* Faster transition */
     pointer-events: auto;  /* Ensure clickable */
     min-width: 200px;  /* Minimum width */

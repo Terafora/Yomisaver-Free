@@ -1,43 +1,5 @@
-import { removeExistingPopup, clearTimers, popup, fadeTimer, activePopupTimer } from './popupUtils';
+import { popupManager, removeExistingPopup } from './popupUtils';
 import { getSentenceContext } from '../utils/dom';
-
-export function createPopup(wordInfo, rect) {
-    if (fadeTimer) {
-        clearTimeout(fadeTimer);
-    }
-    
-    removeExistingPopup();
-    
-    const popup = document.createElement('div');
-    popup.className = 'yomisaver-popup fade-in';
-
-    const sentence = getSentenceContext(wordInfo.word);
-    const cleanWord = wordInfo.word.replace(/<[^>]+>/g, "");
-    
-    // Format meanings
-    const meaningsHTML = formatMeanings(wordInfo);
-    const jlptInfo = wordInfo.jlpt.length ? 
-        `<div class="jlpt">${wordInfo.jlpt.join(', ').toUpperCase()}</div>` : '';
-
-    popup.innerHTML = `
-        <button class="close-button" aria-label="Close">×</button>
-        <div class="header">
-            <div class="word">${cleanWord}</div>
-            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
-            ${jlptInfo}
-        </div>
-        <div class="meanings-container">
-            ${meaningsHTML}
-            <button class="save-vocab-btn">Save to Flashcards</button>
-        </div>
-    `;
-
-    setupPopupEventListeners(popup, wordInfo, sentence);
-    positionPopup(popup, rect);
-    
-    document.body.appendChild(popup);
-    return popup;
-}
 
 function formatMeanings(wordInfo) {
     return wordInfo.meanings.map(meaning => {
@@ -56,36 +18,35 @@ function formatMeanings(wordInfo) {
     }).join('');
 }
 
-function setupPopupEventListeners(popup, wordInfo, sentence) {
-    const closeButton = popup.querySelector('.close-button');
-    closeButton.addEventListener('click', removeExistingPopup);
+export function createPopup(wordInfo, rect) {
+    const popup = document.createElement('div');
+    popup.className = 'yomisaver-popup fade-in';
 
-    const saveBtn = popup.querySelector('.save-vocab-btn');
-    saveBtn.addEventListener('click', () => {
-        chrome.runtime.sendMessage({
-            action: "saveVocabulary",
-            text: wordInfo.word,
-            sentence: sentence,
-            reading: wordInfo.reading,
-            wordInfo: wordInfo
-        });
-        saveBtn.textContent = 'Saved!';
-        saveBtn.disabled = true;
-    });
+    const sentence = getSentenceContext(wordInfo.word);
+    const cleanWord = wordInfo.word.replace(/<[^>]+>/g, "");
+    
+    const meaningsHTML = formatMeanings(wordInfo);
+    const jlptInfo = wordInfo.jlpt.length ? 
+        `<div class="jlpt">${wordInfo.jlpt.join(', ').toUpperCase()}</div>` : '';
 
-    popup.addEventListener('mouseenter', () => {
-        if (activePopupTimer) {
-            clearTimeout(activePopupTimer);
-            activePopupTimer = null;
-        }
-    });
+    // Structured popup content
+    popup.innerHTML = `
+        <div class="header">
+            <button class="close-button" aria-label="Close">×</button>
+            <div class="word">${cleanWord}</div>
+            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
+            ${jlptInfo}
+        </div>
+        <div class="meanings-container">
+            ${meaningsHTML}
+            <button class="save-vocab-btn">Save to Flashcards</button>
+        </div>
+    `;
 
-    popup.addEventListener('mouseleave', () => {
-        activePopupTimer = setTimeout(removeExistingPopup, 300);
-    });
-}
+    // Add to DOM first for measurements
+    document.body.appendChild(popup);
 
-function positionPopup(popup, rect) {
+    // Position popup
     const popupRect = popup.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
@@ -93,16 +54,28 @@ function positionPopup(popup, rect) {
     let top = rect.top + window.scrollY - popupRect.height - 10;
     let left = rect.left + window.scrollX;
     
+    // Adjust if would go off screen
     if (top < window.scrollY) {
         top = rect.bottom + window.scrollY + 10;
     }
-    
     if (left + popupRect.width > viewportWidth) {
         left = viewportWidth - popupRect.width - 10;
     }
-    
     left = Math.max(10, left);
     
+    // Apply position
     popup.style.top = `${top}px`;
     popup.style.left = `${left}px`;
+
+    // Add event listeners
+    const closeButton = popup.querySelector('.close-button');
+    closeButton?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        removeExistingPopup();
+    });
+
+    // Set in manager
+    popupManager.setPopup(popup);
+    return popup;
 }
