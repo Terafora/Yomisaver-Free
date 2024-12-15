@@ -69,21 +69,37 @@ async function handleWordLookup(message, sender, sendResponse) {
     }
 }
 
-// Function to save vocabulary
+// Update saveVocabulary function
 function saveVocabulary(word, sentence, reading, wordInfo) {
+    console.log('Saving vocabulary:', { word, sentence, reading, wordInfo });
+    
     chrome.storage.local.get({ vocabList: [] }, (data) => {
         const vocabList = data.vocabList || [];
-        const newEntry = { word, sentence, reading, wordInfo };
+        const newEntry = {
+            word,
+            sentence: wordInfo?.sentence || sentence,
+            reading: wordInfo?.reading || reading,
+            wordInfo: {
+                reading: wordInfo?.reading || reading,
+                meanings: wordInfo?.meanings || [],
+                jlpt: wordInfo?.jlpt || [],
+                sentence: wordInfo?.sentence || sentence
+            },
+            timestamp: Date.now()
+        };
 
-        // Check for duplicates
-        if (!vocabList.some(entry => entry.word === word && entry.sentence === sentence)) {
+        console.log('New entry:', newEntry);
+        
+        const isDuplicate = vocabList.some(entry => entry.word === word);
+        if (!isDuplicate) {
             vocabList.push(newEntry);
-
             chrome.storage.local.set({ vocabList }, () => {
-                console.log("Vocabulary saved:", newEntry);
+                console.log('Vocabulary saved:', newEntry);
+                chrome.runtime.sendMessage({ 
+                    action: 'vocabUpdated',
+                    entry: newEntry 
+                });
             });
-        } else {
-            console.log("Duplicate entry skipped:", newEntry);
         }
     });
 }

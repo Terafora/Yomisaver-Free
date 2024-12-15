@@ -42,26 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Load flashcards
-    chrome.storage.local.get('vocabList', (data) => {
-        const vocabList = data.vocabList || [];
-        const vocabContainer = document.getElementById('vocab-container');
-        
-        if (vocabList.length === 0) {
-            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
-            return;
-        }
-
-        vocabList.forEach(entry => {
-            const entryElement = document.createElement('div');
-            entryElement.className = 'yomisaver-vocab-entry';
-            entryElement.innerHTML = `
-                <h3>${entry.word}</h3>
-                ${entry.reading ? `<p class="reading">${entry.reading}</p>` : ''}
-                <p class="sentence">${entry.sentence || 'No context available'}</p>
-            `;
-            vocabContainer.appendChild(entryElement);
-        });
-    });
+    loadFlashcards();
 
     // Settings handlers
     const popupSize = document.getElementById('popupSize');
@@ -117,4 +98,83 @@ document.addEventListener('DOMContentLoaded', () => {
             updateFontSize(data.fontSize);
         }
     });
+});
+
+function loadFlashcards() {
+    console.log('Loading flashcards...');
+    chrome.storage.local.get('vocabList', (data) => {
+        console.log('Vocab data:', data);
+        const vocabList = data.vocabList || [];
+        const vocabContainer = document.getElementById('vocab-container');
+        
+        if (!vocabContainer) return;
+
+        if (vocabList.length === 0) {
+            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
+            return;
+        }
+
+        vocabContainer.innerHTML = '';
+        vocabList.forEach((entry, index) => {
+            console.log('Processing flashcard entry:', entry);
+
+            const meanings = entry.wordInfo?.meanings?.map(m => 
+                `<div class="meaning">${m.definitions.join('; ')}</div>`
+            ).join('') || '';
+
+            const entryElement = document.createElement('div');
+            entryElement.className = 'yomisaver-vocab-entry';
+            entryElement.innerHTML = `
+                <div class="vocab-header">
+                    <div class="word-info">
+                        <h3>${entry.word}</h3>
+                        ${entry.reading ? `<p class="reading">${entry.reading}</p>` : ''}
+                    </div>
+                    <button class="delete-vocab" title="Delete flashcard">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </button>
+                </div>
+                ${meanings ? `<div class="meanings-container">${meanings}</div>` : ''}
+                ${entry.sentence ? `
+                    <div class="sentence">
+                        <span class="context-label">Context:</span>
+                        ${entry.sentence}
+                    </div>
+                ` : ''}
+                ${entry.wordInfo?.jlpt?.length ? 
+                    `<div class="jlpt">${entry.wordInfo.jlpt.join(', ').toUpperCase()}</div>` : ''}
+            `;
+
+            // Add delete handler directly to the button
+            const deleteBtn = entryElement.querySelector('.delete-vocab');
+            deleteBtn.addEventListener('click', () => {
+                chrome.storage.local.get('vocabList', (data) => {
+                    const newList = data.vocabList.filter((_, i) => i !== index);
+                    chrome.storage.local.set({ vocabList: newList }, () => {
+                        entryElement.remove();
+                        if (newList.length === 0) {
+                            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
+                        }
+                    });
+                });
+            });
+
+            vocabContainer.appendChild(entryElement);
+        });
+    });
+}
+
+// Listen for vocab updates
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'vocabUpdated') {
+        loadFlashcards();
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadFlashcards();
+    // ... rest of initialization code
 });

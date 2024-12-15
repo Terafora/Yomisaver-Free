@@ -27,5 +27,32 @@ export function getCleanTextFromElement(element) {
 export function getSentenceContext(word) {
     const selection = window.getSelection();
     if (!selection.rangeCount) return "";
-    // ... rest of getSentenceContext function
+    
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const fullText = container.textContent;
+    const wordStart = fullText.indexOf(word);
+    
+    if (wordStart === -1) return "";
+    
+    // Find sentence boundaries (。.!?！？)
+    const sentenceBreaks = /[。.!?！？]/g;
+    let startPos = 0;
+    let endPos = fullText.length;
+    
+    // Find previous sentence break
+    const textBefore = fullText.substring(0, wordStart);
+    const lastBreak = [...textBefore.matchAll(sentenceBreaks)].pop();
+    if (lastBreak) {
+        startPos = lastBreak.index + 1;
+    }
+    
+    // Find next sentence break
+    const textAfter = fullText.substring(wordStart);
+    const nextBreak = textAfter.match(sentenceBreaks);
+    if (nextBreak) {
+        endPos = wordStart + nextBreak.index + 1;
+    }
+    
+    return fullText.substring(startPos, endPos).trim();
 }

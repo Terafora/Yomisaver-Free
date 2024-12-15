@@ -97,6 +97,29 @@ export function createPopup(wordInfo, rect) {
         removeExistingPopup();
     });
 
+    // Update save button handler with complete info
+    popup.querySelector('.save-vocab-btn').addEventListener('click', (e) => {
+        const button = e.target;
+        const context = getSentenceContext(wordInfo.word);
+        
+        chrome.runtime.sendMessage({
+            action: 'saveVocabulary',
+            text: wordInfo.word,
+            sentence: context,
+            reading: wordInfo.reading,
+            wordInfo: {
+                reading: wordInfo.reading,
+                meanings: wordInfo.meanings,
+                jlpt: wordInfo.jlpt,
+                sentence: context
+            }
+        });
+
+        button.textContent = 'Saved!';
+        button.disabled = true;
+        button.classList.add('saved');
+    });
+
     // Set in manager
     popupManager.setPopup(popup);
     return popup;
