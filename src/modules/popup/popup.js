@@ -18,6 +18,46 @@ function formatMeanings(wordInfo) {
     }).join('');
 }
 
+function positionPopup(popup, rect) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const popupRect = popup.getBoundingClientRect();
+    const mouseX = rect.left + window.scrollX;
+    const mouseY = rect.top + window.scrollY;
+
+    // Define viewport center points
+    const centerX = viewportWidth / 2;
+    const centerY = viewportHeight / 2;
+
+    let top, left;
+
+    // Position based on viewport quadrant
+    if (mouseX <= centerX && mouseY <= centerY) {
+        // Top-left quadrant -> Position bottom-right of mouse
+        top = mouseY + 10;
+        left = mouseX + 10;
+    } else if (mouseX > centerX && mouseY <= centerY) {
+        // Top-right quadrant -> Position bottom-left of mouse
+        top = mouseY + 10;
+        left = mouseX - popupRect.width - 10;
+    } else if (mouseX <= centerX && mouseY > centerY) {
+        // Bottom-left quadrant -> Position top-right of mouse
+        top = mouseY - popupRect.height - 10;
+        left = mouseX + 10;
+    } else {
+        // Bottom-right quadrant -> Position top-left of mouse
+        top = mouseY - popupRect.height - 10;
+        left = mouseX - popupRect.width - 10;
+    }
+
+    // Ensure popup stays within viewport bounds
+    left = Math.max(10, Math.min(left, viewportWidth - popupRect.width - 10));
+    top = Math.max(10, Math.min(top, viewportHeight - popupRect.height - 10));
+
+    popup.style.top = `${top}px`;
+    popup.style.left = `${left}px`;
+}
+
 export function createPopup(wordInfo, rect) {
     const popup = document.createElement('div');
     popup.className = 'yomisaver-popup fade-in';
@@ -46,26 +86,8 @@ export function createPopup(wordInfo, rect) {
     // Add to DOM first for measurements
     document.body.appendChild(popup);
 
-    // Position popup
-    const popupRect = popup.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
-    
-    let top = rect.top + window.scrollY - popupRect.height - 10;
-    let left = rect.left + window.scrollX;
-    
-    // Adjust if would go off screen
-    if (top < window.scrollY) {
-        top = rect.bottom + window.scrollY + 10;
-    }
-    if (left + popupRect.width > viewportWidth) {
-        left = viewportWidth - popupRect.width - 10;
-    }
-    left = Math.max(10, left);
-    
-    // Apply position
-    popup.style.top = `${top}px`;
-    popup.style.left = `${left}px`;
+    // Position popup using new logic
+    positionPopup(popup, rect);
 
     // Add event listeners
     const closeButton = popup.querySelector('.close-button');
