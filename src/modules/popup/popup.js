@@ -100,18 +100,16 @@ export function createPopup(wordInfo, rect) {
     // Update save button handler with complete info
     popup.querySelector('.save-vocab-btn').addEventListener('click', (e) => {
         const button = e.target;
-        const context = getSentenceContext(wordInfo.word);
         
+        // Remove context collection
         chrome.runtime.sendMessage({
             action: 'saveVocabulary',
             text: wordInfo.word,
-            sentence: context,
             reading: wordInfo.reading,
             wordInfo: {
                 reading: wordInfo.reading,
                 meanings: wordInfo.meanings,
-                jlpt: wordInfo.jlpt,
-                sentence: context
+                jlpt: wordInfo.jlpt
             }
         });
 

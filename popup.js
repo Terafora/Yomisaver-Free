@@ -118,10 +118,6 @@ function loadFlashcards() {
         vocabList.forEach((entry, index) => {
             console.log('Processing flashcard entry:', entry);
 
-            const meanings = entry.wordInfo?.meanings?.map(m => 
-                `<div class="meaning">${m.definitions.join('; ')}</div>`
-            ).join('') || '';
-
             const entryElement = document.createElement('div');
             entryElement.className = 'yomisaver-vocab-entry';
             entryElement.innerHTML = `
@@ -136,13 +132,9 @@ function loadFlashcards() {
                         </svg>
                     </button>
                 </div>
-                ${meanings ? `<div class="meanings-container">${meanings}</div>` : ''}
-                ${entry.sentence ? `
-                    <div class="sentence">
-                        <span class="context-label">Context:</span>
-                        ${entry.sentence}
-                    </div>
-                ` : ''}
+                ${entry.wordInfo?.meanings?.map(m => 
+                    `<div class="meaning">${m.definitions.join('; ')}</div>`
+                ).join('') || ''}
                 ${entry.wordInfo?.jlpt?.length ? 
                     `<div class="jlpt">${entry.wordInfo.jlpt.join(', ').toUpperCase()}</div>` : ''}
             `;

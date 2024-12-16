@@ -421,15 +421,6 @@ rt {
     border-bottom: none;
 }
 
-.sentence {
-    font-style: italic;
-    color: #666;
-    margin: 10px 0;
-    padding: 8px;
-    background: #f5f7fa;
-    border-radius: 4px;
-}
-
 .delete-vocab {
     background: transparent;
     border: none;
@@ -466,7 +457,7 @@ rt {
     margin-bottom: 5px;
 }
 
-.yomisaver-vocab-entry .sentence {
+.yomisaver-vocab-entry {
     font-size: 0.9em;
     color: #444;
     margin: 0;
@@ -519,11 +510,4 @@ rt {
 .yomisaver-premium-button:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.context-label {
-    color: #666;
-    font-size: 0.8em;
-    font-weight: 500;
-    margin-right: 4px;
 }
