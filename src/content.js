@@ -51,3 +51,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.documentElement.style.setProperty('--font-scale', message.size);
     }
 });
+
+// Add message listener for furigana toggle
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'toggleFurigana') {
+        const furiganaElements = document.querySelectorAll('rt');
+        furiganaElements.forEach(rt => {
+            rt.style.display = message.visible ? 'block' : 'none';
+        });
+    }
+});

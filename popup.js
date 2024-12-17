@@ -87,8 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
         chrome.storage.sync.set({ 'fontSize': e.target.value });
     });
 
+    // Add event listener for toggle furigana button
+    const toggleFuriganaButton = document.getElementById('toggleFurigana');
+    toggleFuriganaButton.addEventListener('click', () => {
+        chrome.storage.sync.get('furiganaVisible', (data) => {
+            const furiganaVisible = !data.furiganaVisible;
+            chrome.storage.sync.set({ 'furiganaVisible': furiganaVisible }, () => {
+                toggleFuriganaButton.textContent = furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'toggleFurigana',
+                        visible: furiganaVisible
+                    });
+                });
+            });
+        });
+    });
+
     // Load saved settings
-    chrome.storage.sync.get(['popupSize', 'fontSize'], (data) => {
+    chrome.storage.sync.get(['popupSize', 'fontSize', 'furiganaVisible'], (data) => {
         if (data.popupSize) {
             popupSize.value = data.popupSize;
             updatePopupSize(data.popupSize);
@@ -96,6 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.fontSize) {
             fontSize.value = data.fontSize;
             updateFontSize(data.fontSize);
+        }
+        if (data.furiganaVisible !== undefined) {
+            toggleFuriganaButton.textContent = data.furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
         }
     });
 });
