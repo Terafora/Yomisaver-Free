@@ -115,7 +115,8 @@ function loadFlashcards() {
         }
 
         vocabContainer.innerHTML = '';
-        vocabList.forEach((entry, index) => {
+        // Reverse the vocabList array to display the newest flashcards first
+        vocabList.reverse().forEach((entry, index) => {
             console.log('Processing flashcard entry:', entry);
 
             const entryElement = document.createElement('div');
