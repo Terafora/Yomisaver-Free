@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             debug('Tab clicked: ' + tab.dataset.tab);
             
+            // Special handling for acknowledgements
+            const isAcknowledgementsVisible = !document.getElementById('acknowledgements').classList.contains('hidden');
+            if (isAcknowledgementsVisible) {
+                document.getElementById('acknowledgements').classList.add('hidden');
+                document.getElementById('settings').classList.remove('hidden');
+            }
+            
             // Remove active and hidden classes from all tabs
             document.querySelectorAll('.yomisaver-tab-content').forEach(content => {
                 content.classList.remove('active');
@@ -129,15 +136,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('export-flashcards').addEventListener('click', exportFlashcards);
 
     // Add event listener for acknowledgements button
-    document.getElementById('showAcknowledgements').addEventListener('click', () => {
-        document.getElementById('settings').classList.add('hidden');
-        document.getElementById('acknowledgements').classList.remove('hidden');
+    document.getElementById('showAcknowledgements').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        const settings = document.getElementById('settings');
+        const acknowledgements = document.getElementById('acknowledgements');
+        settings.classList.add('hidden');
+        acknowledgements.classList.remove('hidden');
+        acknowledgements.classList.add('active');
     });
 
     // Add event listener for back button in acknowledgements
-    document.getElementById('backToSettings').addEventListener('click', () => {
-        document.getElementById('acknowledgements').classList.add('hidden');
-        document.getElementById('settings').classList.remove('hidden');
+    document.getElementById('backToSettings').addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        const settings = document.getElementById('settings');
+        const acknowledgements = document.getElementById('acknowledgements');
+        acknowledgements.classList.add('hidden');
+        acknowledgements.classList.remove('active');
+        settings.classList.remove('hidden');
+        settings.classList.add('active');
     });
 });
 
@@ -254,14 +270,22 @@ chrome.runtime.onMessage.addListener((message) => {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadFlashcards();
-    // Add event listeners for acknowledgements and back button
-    document.getElementById('showAcknowledgements').addEventListener('click', () => {
-        document.getElementById('settings').classList.add('hidden');
-        document.getElementById('acknowledgements').classList.remove('hidden');
-    });
 
-    document.getElementById('backToSettings').addEventListener('click', () => {
-        document.getElementById('acknowledgements').classList.add('hidden');
-        document.getElementById('settings').classList.remove('hidden');
-    });
+    // Add event listeners for acknowledgements and back button
+    const showAcknowledgementsButton = document.getElementById('showAcknowledgements');
+    const backToSettingsButton = document.getElementById('backToSettings');
+    const settingsSection = document.getElementById('settings');
+    const acknowledgementsSection = document.getElementById('acknowledgements');
+
+    if (showAcknowledgementsButton && backToSettingsButton && settingsSection && acknowledgementsSection) {
+        showAcknowledgementsButton.addEventListener('click', () => {
+            settingsSection.classList.add('hidden');
+            acknowledgementsSection.classList.remove('hidden');
+        });
+
+        backToSettingsButton.addEventListener('click', () => {
+            acknowledgementsSection.classList.add('hidden');
+            settingsSection.classList.remove('hidden');
+        });
+    }
 });
