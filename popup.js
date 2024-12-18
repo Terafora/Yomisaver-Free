@@ -94,6 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const furiganaVisible = !data.furiganaVisible;
             chrome.storage.sync.set({ 'furiganaVisible': furiganaVisible }, () => {
                 toggleFuriganaButton.textContent = furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
+                chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, {
+                        action: 'toggleFurigana',
+                        visible: furiganaVisible
+                    });
+                });
             });
         });
     });
@@ -110,6 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (data.furiganaVisible !== undefined) {
             toggleFuriganaButton.textContent = data.furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    action: 'toggleFurigana',
+                    visible: data.furiganaVisible
+                });
+            });
         }
     });
 
@@ -229,8 +241,27 @@ chrome.runtime.onMessage.addListener((message) => {
     }
 });
 
+// Add message listener for furigana toggle
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'toggleFurigana') {
+        const furiganaElements = document.querySelectorAll('rt');
+        furiganaElements.forEach(rt => {
+            rt.style.display = message.visible ? 'block' : 'none';
+        });
+    }
+});
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadFlashcards();
-    // ... rest of initialization code
+    // Add event listeners for acknowledgements and back button
+    document.getElementById('showAcknowledgements').addEventListener('click', () => {
+        document.getElementById('settings').classList.add('hidden');
+        document.getElementById('acknowledgements').classList.remove('hidden');
+    });
+
+    document.getElementById('backToSettings').addEventListener('click', () => {
+        document.getElementById('acknowledgements').classList.add('hidden');
+        document.getElementById('settings').classList.remove('hidden');
+    });
 });
