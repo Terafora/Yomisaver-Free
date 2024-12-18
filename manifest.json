@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YomiSaver",
   "version": "1.0",
-  "description": "Learn Japanese effortlessly with furigana, flashcards, and Anki export.",
+  "description": "Learn Japanese effortlessly with furigana, definitions, and flashcard export to Anki.",
   "permissions": [
     "contextMenus", 
     "storage", 
@@ -19,7 +19,16 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "content_scripts": [
     {

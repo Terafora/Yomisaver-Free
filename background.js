@@ -12,10 +12,13 @@ chrome.contextMenus.onClicked.addListener((info) => {
     }
 });
 
-// Listen for messages from the content script
-chrome.runtime.onMessage.addListener((message) => {
+// Listen for messages from the content script and popup script
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "saveVocabulary") {
         saveVocabulary(message.text, "Context not provided", "Reading unavailable", message.wordInfo);
+    } else if (message.action === "lookupWord") {
+        handleWordLookup(message, sender, sendResponse);
+        return true; // Keep the message channel open for async response
     }
 });
 
@@ -25,15 +28,6 @@ const MAX_RECONNECT_ATTEMPTS = 3;
 // Add connection recovery
 chrome.runtime.onStartup.addListener(() => {
     connectionAttempts = 0;
-});
-
-// Add API proxy handler
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "lookupWord") {
-        handleWordLookup(message, sender, sendResponse);
-        return true; // Keep the message channel open for async response
-    }
-    // ...existing message handlers...
 });
 
 async function handleWordLookup(message, sender, sendResponse) {
