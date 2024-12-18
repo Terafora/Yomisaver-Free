@@ -92,7 +92,9 @@ module.exports = {
                 { from: 'popup.html' },
                 { from: 'popup.js' },
                 { from: 'styles.css' },
-                { from: 'icon.png' }
+                { from: 'icon-16.png' },
+                { from: 'icon-48.png' },
+                { from: 'icon-128.png' }
             ]
         }),
         new webpack.DefinePlugin({
