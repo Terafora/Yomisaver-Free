@@ -31,6 +31,54 @@
                 <h3>Furigana</h3>
                 <button id="toggleFurigana">Hide Furigana</button>
             </div>
+            <div class="yomisaver-settings-group">
+                <h3>Acknowledgements</h3>
+                <button id="showAcknowledgements">View Acknowledgements</button>
+            </div>
+        </div>
+
+        <div id="acknowledgements" class="yomisaver-tab-content hidden">
+            <button id="backToSettings" class="back-button">← Back</button>
+            <h3>Acknowledgements</h3>
+            <p>The development of YomiSaver has been made possible with the support of various open-source tools, APIs, and resources. I would like to acknowledge the following:</p>
+            <ul>
+                <li><strong>Kuromoji.js</strong>
+                    <ul>
+                        <li>Used for tokenizing Japanese text and enabling the injection of furigana.</li>
+                        <li><a href="https://github.com/takuyaa/kuromoji.js" target="_blank">Kuromoji.js on GitHub</a></li>
+                    </ul>
+                </li>
+                <li><strong>Jisho.org API</strong>
+                    <ul>
+                        <li>Provides word definitions, readings, and detailed dictionary data.</li>
+                        <li>Data sourced from publicly available Japanese-English dictionaries, such as JMdict.</li>
+                        <li><a href="https://jisho.org" target="_blank">Jisho.org</a></li>
+                    </ul>
+                </li>
+                <li><strong>JMdict</strong>
+                    <ul>
+                        <li>A comprehensive Japanese-English dictionary file used in Jisho.org, developed and maintained by the Electronic Dictionary Research and Development Group.</li>
+                        <li><a href="https://www.edrdg.org/jmdict/edict.html" target="_blank">JMdict Project</a></li>
+                    </ul>
+                </li>
+                <li><strong>CDN by jsDelivr</strong>
+                    <ul>
+                        <li>Used for hosting dictionary and script resources in the Chrome extension.</li>
+                        <li><a href="https://www.jsdelivr.com/" target="_blank">jsDelivr</a></li>
+                    </ul>
+                </li>
+                <li><strong>Google Chrome Extensions Platform</strong>
+                    <ul>
+                        <li>For enabling the creation and deployment of YomiSaver as a Chrome browser extension.</li>
+                        <li><a href="https://developer.chrome.com/docs/extensions/" target="_blank">Chrome Web Store Documentation</a></li>
+                    </ul>
+                </li>
+                <li><strong>Open-Source Libraries and Frameworks</strong>
+                    <ul>
+                        <li>Various open-source JavaScript libraries and tools used throughout development.</li>
+                    </ul>
+                </li>
+            </ul>
         </div>
 
         <div id="jlpt" class="yomisaver-tab-content">

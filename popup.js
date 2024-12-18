@@ -115,6 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach export functionality to button
     document.getElementById('export-flashcards').addEventListener('click', exportFlashcards);
+
+    // Add event listener for acknowledgements button
+    document.getElementById('showAcknowledgements').addEventListener('click', () => {
+        document.getElementById('settings').classList.add('hidden');
+        document.getElementById('acknowledgements').classList.remove('hidden');
+    });
+
+    // Add event listener for back button in acknowledgements
+    document.getElementById('backToSettings').addEventListener('click', () => {
+        document.getElementById('acknowledgements').classList.add('hidden');
+        document.getElementById('settings').classList.remove('hidden');
+    });
 });
 
 function loadFlashcards() {
