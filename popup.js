@@ -94,12 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const furiganaVisible = !data.furiganaVisible;
             chrome.storage.sync.set({ 'furiganaVisible': furiganaVisible }, () => {
                 toggleFuriganaButton.textContent = furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'toggleFurigana',
-                        visible: furiganaVisible
-                    });
-                });
             });
         });
     });
@@ -118,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleFuriganaButton.textContent = data.furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
         }
     });
+
+    // Attach export functionality to button
+    document.getElementById('export-flashcards').addEventListener('click', exportFlashcards);
 });
 
 function loadFlashcards() {
@@ -135,7 +132,6 @@ function loadFlashcards() {
         }
 
         vocabContainer.innerHTML = '';
-        // Reverse the vocabList array to display the newest flashcards first
         vocabList.reverse().forEach((entry, index) => {
             console.log('Processing flashcard entry:', entry);
 
@@ -143,6 +139,7 @@ function loadFlashcards() {
             entryElement.className = 'yomisaver-vocab-entry';
             entryElement.innerHTML = `
                 <div class="vocab-header">
+                    <input type="checkbox" class="select-flashcard" data-index="${index}">
                     <div class="word-info">
                         <h3>${entry.word}</h3>
                         ${entry.reading ? `<p class="reading">${entry.reading}</p>` : ''}
@@ -176,6 +173,40 @@ function loadFlashcards() {
 
             vocabContainer.appendChild(entryElement);
         });
+    });
+}
+
+function exportFlashcards() {
+    chrome.storage.local.get('vocabList', (data) => {
+        const vocabList = data.vocabList || [];
+        const selectedIndexes = Array.from(document.querySelectorAll('.select-flashcard:checked')).map(cb => parseInt(cb.dataset.index));
+        const selectedFlashcards = selectedIndexes.map(index => vocabList[index]);
+
+        if (selectedFlashcards.length === 0) {
+            alert('No flashcards selected for export.');
+            return;
+        }
+
+        const ankiData = selectedFlashcards.map(entry => {
+            const front = entry.word;
+            const back = `
+                ${entry.reading ? `<div>Reading: ${entry.reading}</div>` : ''}
+                ${entry.wordInfo?.meanings?.map(m => `<div>Definition: ${m.definitions.join('; ')}</div>`).join('') || ''}
+                ${entry.wordInfo?.jlpt?.length ? `<div>JLPT: ${entry.wordInfo.jlpt.join(', ').toUpperCase()}</div>` : ''}
+            `.trim().replace(/\n\s+/g, ' '); // Remove extra whitespace
+            const tags = entry.wordInfo?.jlpt?.join(' ') || '';
+            return `${front}\t${back}\t${tags}`;
+        }).join('\n');
+
+        const blob = new Blob([ankiData], { type: 'text/tab-separated-values' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'flashcards.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     });
 }
 
