@@ -89,21 +89,6 @@ rt {
     line-height: inherit;
 }
 
-.yomisaver-popup .meanings {
-    font-size: 0.9em;
-}
-
-.yomisaver-hover {
-    background-color: #2c4c9c;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-}
-
-.yomisaver-hover rt {
-    color: #e0e0e0;
-}
-
 .yomisaver-popup .header {
     background-color: #ff0000;
     color: white;
@@ -168,28 +153,6 @@ rt {
     margin-top: 4px;
 }
 
-/* Add highlight styles */
-.yomisaver-word {
-    transition: all 0.3s ease-in-out;
-}
-
-.yomisaver-word.highlight {
-    background-color: rgba(44, 76, 156, 0.2); /* Light blue background */
-    border-radius: 2px;
-    box-shadow: 0 0 0 2px rgba(44, 76, 156, 0.2);
-}
-
-/* Ensure furigana remains visible on highlight */
-.yomisaver-word.highlight rt {
-    color: #666;
-}
-
-.yomisaver-word.active {
-    background-color: rgba(44, 76, 156, 0.1);
-    border-radius: 2px;
-    transition: background-color 0.3s ease;
-}
-
 .save-vocab-btn {
     background-color: #2c4c9c;
     color: white;
@@ -240,29 +203,6 @@ rt {
 /* Add hover state */
 .yomisaver-popup:hover {
     opacity: 1;
-}
-
-.yomisaver-popup .close-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
-    font-size: 14px;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-}
-
-.yomisaver-popup .close-btn:hover {
-    background: rgba(255,255,255,0.3);
 }
 
 .yomisaver-popup .close-button {
