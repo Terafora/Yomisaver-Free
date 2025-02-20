@@ -28,6 +28,9 @@ YomiSaver is a Chrome extension designed to help you learn Japanese effortlessly
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right corner
 4. Click "Load unpacked" and select the directory containing this project and delect the dist folder
+
+**and if you're forking this repo to develop**
+   
 5. Run `npm install` to install dependencies
 6. Run `npm run build` to build the extension
 
