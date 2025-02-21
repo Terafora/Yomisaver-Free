@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YomiSaver</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="yomisaver-menu">
+    <div class="yomisaver-tab-container">
+        <button class="yomisaver-tab active" data-tab="flashcards">Flashcards</button>
+        <button class="yomisaver-tab" data-tab="settings">Settings</button>
+        <button class="yomisaver-tab" data-tab="jlpt">JLPT Filter</button>
+        <button class="yomisaver-tab" data-tab="premium">Support</button>
+    </div>
+
+    <div class="yomisaver-content-container">
+        <div id="flashcards" class="yomisaver-tab-content active">
+            <div id="vocab-container"></div>
+            <button id="export-flashcards" class="yomisaver-premium-button">Export Selected Flashcards</button>
+        </div>
+
+        <div id="settings" class="yomisaver-tab-content">
+            <div class="yomisaver-settings-group">
+                <h3>Popup Size</h3>
+                <input type="range" class="yomisaver-range-control" id="popupSize" min="80" max="120" value="100">
+            </div>
+            <div class="yomisaver-settings-group">
+                <h3>Font Size</h3>
+                <input type="range" class="yomisaver-range-control" id="fontSize" min="80" max="120" value="100">
+            </div>
+            <div class="yomisaver-settings-group">
+                <h3>Furigana</h3>
+                <button id="toggleFurigana">Hide Furigana</button>
+            </div>
+            <div class="yomisaver-settings-group">
+                <h3>Acknowledgements</h3>
+                <button id="showAcknowledgements">View Acknowledgements</button>
+            </div>
+        </div>
+
+        <div id="acknowledgements" class="yomisaver-tab-content hidden">
+            <button id="backToSettings" class="back-button">Hide</button>
+            <h3>Acknowledgements</h3>
+            <p>The development of YomiSaver has been made possible with the support of various open-source tools, APIs, and resources. I would like to acknowledge the following:</p>
+            <ul>
+                <li><strong>Kuromoji.js</strong>
+                    <ul>
+                        <li>Used for tokenizing Japanese text and enabling the injection of furigana.</li>
+                        <li><a href="https://github.com/takuyaa/kuromoji.js" target="_blank">Kuromoji.js on GitHub</a></li>
+                    </ul>
+                </li>
+                <li><strong>Jisho.org API</strong>
+                    <ul>
+                        <li>Provides word definitions, readings, and detailed dictionary data.</li>
+                        <li>Data sourced from publicly available Japanese-English dictionaries, such as JMdict.</li>
+                        <li><a href="https://jisho.org" target="_blank">Jisho.org</a></li>
+                    </ul>
+                </li>
+                <li><strong>JMdict</strong>
+                    <ul>
+                        <li>A comprehensive Japanese-English dictionary file used in Jisho.org, developed and maintained by the Electronic Dictionary Research and Development Group.</li>
+                        <li><a href="https://www.edrdg.org/jmdict/edict.html" target="_blank">JMdict Project</a></li>
+                    </ul>
+                </li>
+                <li><strong>CDN by jsDelivr</strong>
+                    <ul>
+                        <li>Used for hosting dictionary and script resources in the Chrome extension.</li>
+                        <li><a href="https://www.jsdelivr.com/" target="_blank">jsDelivr</a></li>
+                    </ul>
+                </li>
+                <li><strong>Google Chrome Extensions Platform</strong>
+                    <ul>
+                        <li>For enabling the creation and deployment of YomiSaver as a Chrome browser extension.</li>
+                        <li><a href="https://developer.chrome.com/docs/extensions/" target="_blank">Chrome Web Store Documentation</a></li>
+                    </ul>
+                </li>
+                <li><strong>Open-Source Libraries and Frameworks</strong>
+                    <ul>
+                        <li>Various open-source JavaScript libraries and tools used throughout development.</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div id="jlpt" class="yomisaver-tab-content">
+            <div class="yomisaver-coming-soon">
+                <h3>Coming Soon</h3>
+                <p>JLPT filtering options will be available in a future update!</p>
+            </div>
+        </div>
+
+        <div id="premium" class="yomisaver-tab-content">
+            <div class="yomisaver-coming-soon">
+                <h3>Enjoy YomiSaver?</h3>
+                <p>Help support the development of open source language education.</p>
+                <a href="https://ko-fi.com/projectexitvelocity" 
+                   target="_blank" 
+                   class="yomisaver-premium-button">Tip</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add debug info -->
+    <div id="debug" style="display:none;"></div>
+
+    <script src="popup.bundle.js"></script>
+</body>
+</html>
