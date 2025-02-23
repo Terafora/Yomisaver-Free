@@ -22,7 +22,7 @@ YomiSaver is a Chrome extension designed to help you learn Japanese effortlessly
   - Properly formats meanings with parts of speech
   - Shows grammatical tags and additional info
 
-## Installation
+## Installation/ Tutorial
 
 1. Clone or download this repository
 2. Open Chrome and navigate to `chrome://extensions/`
@@ -33,6 +33,8 @@ YomiSaver is a Chrome extension designed to help you learn Japanese effortlessly
    
 5. Run `npm install` to install dependencies
 6. Run `npm run build` to build the extension
+
+[**Visual tutorial available on my website. Click here!**](https://project-exit-velocity-blog.vercel.app/blog/67b86df0da979dbcf283e404)
 
 ## Usage
 
