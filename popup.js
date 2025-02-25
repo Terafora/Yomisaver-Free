@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Settings handlers
     const popupSize = document.getElementById('popupSize');
     const fontSize = document.getElementById('fontSize');
+    const dictionaryLang = document.getElementById('dictionaryLang');
 
     // Update size functions
     function updatePopupSize(value) {
@@ -112,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Load saved settings
-    chrome.storage.sync.get(['popupSize', 'fontSize', 'furiganaVisible'], (data) => {
+    chrome.storage.sync.get(['popupSize', 'fontSize', 'furiganaVisible', 'dictionaryLang'], (data) => {
         if (data.popupSize) {
             popupSize.value = data.popupSize;
             updatePopupSize(data.popupSize);
@@ -130,6 +131,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
+        if (data.dictionaryLang) {
+            dictionaryLang.value = data.dictionaryLang;
+        }
+    });
+
+    // Save language preference when changed
+    dictionaryLang.addEventListener('change', (e) => {
+        chrome.storage.sync.set({ 'dictionaryLang': e.target.value });
+        // Notify content script of language change
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, {
+                action: 'updateDictionaryLang',
+                language: e.target.value
+            });
+        });
     });
 
     // Attach export functionality to button

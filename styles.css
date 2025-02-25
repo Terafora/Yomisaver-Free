@@ -524,3 +524,18 @@ rt {
     transform: translateY(1px);
     box-shadow: none;
 }
+
+.yomisaver-select-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.yomisaver-select-control:focus {
+    outline: none;
+    border-color: #2c4c9c;
+}

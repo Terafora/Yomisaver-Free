@@ -31,36 +31,48 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 async function handleWordLookup(message, sender, sendResponse) {
+    const lang = message.language || 'en';
     try {
-        const response = await fetch(
-            `https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(message.word)}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'User-Agent': 'YomiSaver-Extension'
-                }
+        const endpoint = `https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(message.word)}`;
+        
+        const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'YomiSaver-Extension'
             }
-        );
+        });
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+        
+        if (lang === 'fr') {
+            data.data.forEach(entry => {
+                entry.senses.forEach(sense => {
+                    // Use a translation API or dictionary here
+                    // For now, we'll append "(FR)" to show it's working
+                    sense.french_definitions = sense.english_definitions.map(def => 
+                        `${def} (FR)`
+                    );
+                });
+            });
+        }
+        
         sendResponse({ success: true, data });
         connectionAttempts = 0;
     } catch (error) {
         console.error('Proxy fetch error:', error);
-        
         if (connectionAttempts < MAX_RECONNECT_ATTEMPTS) {
             connectionAttempts++;
-            // Retry after delay
             setTimeout(() => handleWordLookup(message, sender, sendResponse), 1000);
         } else {
             sendResponse({ success: false, error: error.message });
         }
     }
+    return true;
 }
 
 // Update saveVocabulary function

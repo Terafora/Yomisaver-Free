@@ -3,6 +3,15 @@ import { createPopup } from '../popup/popup';
 import { getCleanTextFromElement } from '../utils/dom';
 import { popupManager, removeExistingPopup } from '../popup/popupUtils';
 
+let currentLanguage = 'en';
+
+// Add language change listener
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'updateDictionaryLang') {
+        currentLanguage = message.language;
+    }
+});
+
 export function addSelectionListener() {
     let hoverTimer = null;
     let activeElement = null;
@@ -23,7 +32,7 @@ export function addSelectionListener() {
             const text = getCleanTextFromElement(element);
             if (!text) return;
 
-            const wordInfo = await lookupWord(text);
+            const wordInfo = await lookupWord(text, currentLanguage);
             if (wordInfo) {
                 if (popupManager.getPopup()) {
                     popupManager.removeExistingPopup();
