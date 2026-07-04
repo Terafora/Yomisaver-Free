@@ -6,9 +6,9 @@
 </head>
 <body class="yomisaver-menu">
     <div class="yomisaver-tab-container">
-        <button class="yomisaver-tab active" data-tab="flashcards">Flashcards</button>
+        <button class="yomisaver-tab active" data-tab="flashcards">Cards</button>
         <button class="yomisaver-tab" data-tab="settings">Settings</button>
-        <button class="yomisaver-tab" data-tab="jlpt">JLPT Filter</button>
+        <button class="yomisaver-tab" data-tab="jlpt">JLPT</button>
         <button class="yomisaver-tab" data-tab="premium">Support</button>
     </div>
 
@@ -40,7 +40,7 @@
         <div id="acknowledgements" class="yomisaver-tab-content hidden">
             <button id="backToSettings" class="back-button">Hide</button>
             <h3>Acknowledgements</h3>
-            <p>The development of YomiSaver has been made possible with the support of various open-source tools, APIs, and resources. I would like to acknowledge the following:</p>
+            <p>The development of YomiSaver has been made possible with the support of various open-source tools, APIs, and resources.</p>
             <ul>
                 <li><strong>Kuromoji.js</strong>
                     <ul>
@@ -61,10 +61,16 @@
                         <li><a href="https://www.edrdg.org/jmdict/edict.html" target="_blank">JMdict Project</a></li>
                     </ul>
                 </li>
-                <li><strong>CDN by jsDelivr</strong>
+                <li><strong>Tanos JLPT Resources</strong>
                     <ul>
-                        <li>Used for hosting dictionary and script resources in the Chrome extension.</li>
-                        <li><a href="https://www.jsdelivr.com/" target="_blank">jsDelivr</a></li>
+                        <li>Used as a community JLPT vocabulary reference source. Tanos data is credited to Jonathan Waller.</li>
+                        <li><a href="https://www.tanos.co.uk/jlpt/" target="_blank">Tanos JLPT Resources</a></li>
+                    </ul>
+                </li>
+                <li><strong>Bluskyo/JLPT_Vocabulary</strong>
+                    <ul>
+                        <li>Used for cleaned JSON/CSV conversions of Tanos JLPT vocabulary data.</li>
+                        <li><a href="https://github.com/Bluskyo/JLPT_Vocabulary" target="_blank">JLPT_Vocabulary on GitHub</a></li>
                     </ul>
                 </li>
                 <li><strong>Google Chrome Extensions Platform</strong>
@@ -73,18 +79,17 @@
                         <li><a href="https://developer.chrome.com/docs/extensions/" target="_blank">Chrome Web Store Documentation</a></li>
                     </ul>
                 </li>
-                <li><strong>Open-Source Libraries and Frameworks</strong>
-                    <ul>
-                        <li>Various open-source JavaScript libraries and tools used throughout development.</li>
-                    </ul>
-                </li>
             </ul>
         </div>
 
         <div id="jlpt" class="yomisaver-tab-content">
-            <div class="yomisaver-coming-soon">
-                <h3>Coming Soon</h3>
-                <p>JLPT filtering options will be available in a future update!</p>
+            <div class="yomisaver-settings-group">
+                <h3>Reading Help Level</h3>
+                <p class="yomisaver-help-text">
+                    Choose the JLPT level up to which YomiSaver should hide furigana. Unknown words stay visible unless furigana is turned off.
+                </p>
+
+                <div id="reading-help-options" class="yomisaver-radio-list"></div>
             </div>
         </div>
 
@@ -92,14 +97,13 @@
             <div class="yomisaver-coming-soon">
                 <h3>Enjoy YomiSaver?</h3>
                 <p>Help support the development of open source language education.</p>
-                <a href="https://ko-fi.com/projectexitvelocity" 
-                   target="_blank" 
+                <a href="https://ko-fi.com/projectexitvelocity"
+                   target="_blank"
                    class="yomisaver-premium-button">Tip</a>
             </div>
         </div>
     </div>
 
-    <!-- Add debug info -->
     <div id="debug" style="display:none;"></div>
 
     <script src="popup.bundle.js"></script>

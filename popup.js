@@ -1,10 +1,45 @@
 const VOCAB_STORAGE_KEY = 'vocabList';
+const READING_HELP_MODE_STORAGE_KEY = 'readingHelpMode';
+
+const READING_HELP_MODES = {
+    all: {
+        label: 'Show all',
+        description: 'Show furigana for all kanji words.'
+    },
+    hideN5: {
+        label: 'Hide up to N5',
+        description: 'Hide furigana for known N5 words.'
+    },
+    hideN4AndBelow: {
+        label: 'Hide up to N4',
+        description: 'Hide furigana for known N5–N4 words.'
+    },
+    hideN3AndBelow: {
+        label: 'Hide up to N3',
+        description: 'Hide furigana for known N5–N3 words.'
+    },
+    hideN2AndBelow: {
+        label: 'Hide up to N2',
+        description: 'Hide furigana for known N5–N2 words.'
+    },
+    hideN1AndBelow: {
+        label: 'Hide up to N1',
+        description: 'Hide furigana for all known JLPT words. Unknown words still show.'
+    },
+    none: {
+        label: 'Hide all',
+        description: 'Hide all furigana, including unknown words and names.'
+    }
+};
+
+const DEFAULT_READING_HELP_MODE = 'all';
 
 document.addEventListener('DOMContentLoaded', initPopup);
 
 function initPopup() {
     initTabs();
     initSettings();
+    initJlptFilter();
     initFlashcards();
     initAcknowledgements();
     initRuntimeListeners();
@@ -103,6 +138,103 @@ function initSettings() {
             });
         }
     );
+}
+
+function initJlptFilter() {
+    const optionsContainer = document.getElementById('reading-help-options');
+
+    if (!optionsContainer) {
+        return;
+    }
+
+    clearElement(optionsContainer);
+
+    Object.entries(READING_HELP_MODES).forEach(([modeKey, mode]) => {
+        optionsContainer.appendChild(createReadingHelpOption(modeKey, mode));
+    });
+
+    chrome.storage.sync.get(
+        {
+            [READING_HELP_MODE_STORAGE_KEY]: DEFAULT_READING_HELP_MODE
+        },
+        data => {
+            const savedMode = normaliseSavedReadingHelpMode(
+                data[READING_HELP_MODE_STORAGE_KEY]
+            );
+
+            const radio = document.querySelector(
+                `input[name="readingHelpMode"][value="${cssEscape(savedMode)}"]`
+            );
+
+            if (radio) {
+                radio.checked = true;
+            }
+        }
+    );
+}
+
+function createReadingHelpOption(modeKey, mode) {
+    const label = createElement('label', 'yomisaver-radio-option');
+
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'readingHelpMode';
+    input.value = modeKey;
+
+    const textContainer = createElement('span', 'yomisaver-radio-text');
+
+    const title = createElement('strong', '', mode.label);
+    const description = createElement('span', 'yomisaver-radio-description', mode.description);
+
+    textContainer.appendChild(title);
+    textContainer.appendChild(description);
+
+    label.appendChild(input);
+    label.appendChild(textContainer);
+
+    input.addEventListener('change', () => {
+        if (!input.checked) {
+            return;
+        }
+
+        chrome.storage.sync.set(
+            {
+                [READING_HELP_MODE_STORAGE_KEY]: modeKey,
+                furiganaVisible: modeKey !== 'none'
+            },
+            () => {
+                const toggleButton = document.getElementById('toggleFurigana');
+
+                if (toggleButton) {
+                    setFuriganaButtonText(toggleButton, modeKey !== 'none');
+                }
+
+                sendMessageToActiveTab({
+                    action: 'updateReadingHelpMode',
+                    mode: modeKey
+                });
+
+                sendMessageToActiveTab({
+                    action: 'toggleFurigana',
+                    visible: modeKey !== 'none'
+                });
+            }
+        );
+    });
+
+    return label;
+}
+
+function normaliseSavedReadingHelpMode(mode) {
+    if (mode === 'advanced') {
+        return 'hideN2AndBelow';
+    }
+
+    if (mode && READING_HELP_MODES[mode]) {
+        return mode;
+    }
+
+    return DEFAULT_READING_HELP_MODE;
 }
 
 function updatePopupSize(value) {
@@ -536,7 +668,6 @@ function sendMessageToActiveTab(message) {
         }
 
         chrome.tabs.sendMessage(activeTab.id, message, () => {
-            // Ignore errors when the active tab has no YomiSaver content script.
             void chrome.runtime.lastError;
         });
     });

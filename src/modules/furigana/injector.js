@@ -1,6 +1,11 @@
 import { processText } from '../tokenizer';
 import { hasJapaneseText } from '../utils/japanese';
 import { tokenToDataset } from '../models/token';
+import {
+    DEFAULT_READING_HELP_MODE,
+    getJlptLevelForToken,
+    shouldShowFuriganaForToken
+} from '../jlpt/filter';
 
 const SKIPPED_TAGS = new Set([
     'SCRIPT',
@@ -29,6 +34,12 @@ const SKIPPED_ANCESTOR_SELECTOR = [
     '[contenteditable="true"]',
     '[contenteditable=""]'
 ].join(',');
+
+let currentReadingHelpMode = DEFAULT_READING_HELP_MODE;
+
+export function setCurrentReadingHelpMode(mode) {
+    currentReadingHelpMode = mode || DEFAULT_READING_HELP_MODE;
+}
 
 export function shouldSkipTextNode(node) {
     if (!node || node.nodeType !== Node.TEXT_NODE) {
@@ -80,7 +91,8 @@ export async function injectFurigana(node) {
         wrapper.className = 'yomisaver-text';
 
         tokens.forEach((token, index) => {
-            wrapper.appendChild(createTokenElement(token, tokens, index));
+            const enrichedToken = enrichToken(token, tokens, index);
+            wrapper.appendChild(createTokenElement(enrichedToken));
         });
 
         node.replaceWith(wrapper);
@@ -89,7 +101,21 @@ export async function injectFurigana(node) {
     }
 }
 
-function createTokenElement(token, tokens, index) {
+function enrichToken(token, tokens, index) {
+    const adjustedReading = getAdjustedReading(tokens, index);
+    const jlptLevel = getJlptLevelForToken({
+        ...token,
+        reading: adjustedReading
+    });
+
+    return {
+        ...token,
+        reading: adjustedReading,
+        jlptLevel
+    };
+}
+
+function createTokenElement(token) {
     if (!token.surface) {
         return document.createTextNode('');
     }
@@ -98,25 +124,27 @@ function createTokenElement(token, tokens, index) {
         return document.createTextNode(token.surface);
     }
 
-    const reading = getAdjustedReading(tokens, index);
-
-    if (token.isKanjiWord && reading) {
-        return createRubyElement(token, reading);
+    if (token.isKanjiWord && token.reading) {
+        return createRubyElement(token);
     }
 
     return createPlainWordElement(token);
 }
 
-function createRubyElement(token, reading) {
+function createRubyElement(token) {
     const ruby = document.createElement('ruby');
     ruby.className = 'yomisaver-word yomisaver-ruby';
 
-    setTokenDataset(ruby, token, reading);
+    setTokenDataset(ruby, token);
 
     ruby.appendChild(document.createTextNode(token.surface));
 
     const rt = document.createElement('rt');
-    rt.textContent = reading;
+    rt.textContent = token.reading;
+
+    const visible = shouldShowFuriganaForToken(token, currentReadingHelpMode);
+    rt.style.display = visible ? 'block' : 'none';
+    ruby.dataset.furiganaVisible = visible ? 'true' : 'false';
 
     ruby.appendChild(rt);
 
@@ -128,20 +156,20 @@ function createPlainWordElement(token) {
     span.className = 'yomisaver-word yomisaver-token';
     span.textContent = token.surface;
 
-    setTokenDataset(span, token, token.reading || '');
+    setTokenDataset(span, token);
 
     return span;
 }
 
-function setTokenDataset(element, token, reading) {
-    const dataset = tokenToDataset({
-        ...token,
-        reading
-    });
+function setTokenDataset(element, token) {
+    const dataset = tokenToDataset(token);
 
     Object.entries(dataset).forEach(([key, value]) => {
         element.dataset[key] = value;
     });
+
+    element.dataset.jlptLevel = token.jlptLevel || '';
+    element.dataset.properNoun = isProperNoun(token) ? 'true' : 'false';
 }
 
 function getAdjustedReading(tokens, index) {
@@ -160,4 +188,13 @@ function getAdjustedReading(tokens, index) {
     }
 
     return token.reading;
+}
+
+function isProperNoun(token) {
+    if (token.partOfSpeech === '固有名詞') {
+        return true;
+    }
+
+    return Array.isArray(token.partOfSpeechDetails) &&
+        token.partOfSpeechDetails.includes('固有名詞');
 }
