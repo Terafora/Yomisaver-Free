@@ -1,115 +1,188 @@
-import { popupManager, removeExistingPopup } from './popupUtils';
+import { popupManager } from './popupUtils';
 import { getSentenceContext } from '../utils/dom';
 
-function formatMeanings(wordInfo) {
-    return wordInfo.meanings.map(meaning => {
-        const pos = meaning.partOfSpeech.length ? 
-            `<span class="pos">${meaning.partOfSpeech.join(', ')}</span>` : '';
-        const tags = meaning.tags.length ? 
-            `<span class="tags">${meaning.tags.join(', ')}</span>` : '';
-        const info = meaning.info.length ? 
-            `<span class="info">${meaning.info.join(', ')}</span>` : '';
-        return `
-            <div class="meaning-group">
-                ${pos}${tags}${info}
-                <div class="definitions">${meaning.definitions.join('; ')}</div>
-            </div>
-        `;
-    }).join('');
+function createElement(tagName, className, textContent) {
+    const element = document.createElement(tagName);
+
+    if (className) {
+        element.className = className;
+    }
+
+    if (textContent !== undefined && textContent !== null) {
+        element.textContent = textContent;
+    }
+
+    return element;
+}
+
+function normaliseArray(value) {
+    return Array.isArray(value) ? value : [];
+}
+
+function createMeaningGroup(meaning) {
+    const group = createElement('div', 'meaning-group');
+
+    const partOfSpeech = normaliseArray(meaning.partOfSpeech);
+    const tags = normaliseArray(meaning.tags);
+    const info = normaliseArray(meaning.info);
+    const definitions = normaliseArray(meaning.definitions);
+
+    const metaContainer = createElement('div', 'meaning-meta');
+
+    if (partOfSpeech.length) {
+        metaContainer.appendChild(createElement('span', 'pos', partOfSpeech.join(', ')));
+    }
+
+    if (tags.length) {
+        metaContainer.appendChild(createElement('span', 'tags', tags.join(', ')));
+    }
+
+    if (info.length) {
+        metaContainer.appendChild(createElement('span', 'info', info.join(', ')));
+    }
+
+    if (metaContainer.childNodes.length) {
+        group.appendChild(metaContainer);
+    }
+
+    const definitionsElement = createElement(
+        'div',
+        'definitions',
+        definitions.length ? definitions.join('; ') : 'No definition available.'
+    );
+
+    group.appendChild(definitionsElement);
+
+    return group;
 }
 
 function positionPopup(popup, rect) {
+    const gap = 10;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const popupRect = popup.getBoundingClientRect();
-    const mouseX = rect.left + window.scrollX;
-    const mouseY = rect.top + window.scrollY;
 
-    // Define viewport center points
-    const centerX = viewportWidth / 2;
-    const centerY = viewportHeight / 2;
+    let left = rect.left;
+    let top = rect.bottom + gap;
 
-    let top, left;
+    const wouldOverflowBottom = top + popupRect.height > viewportHeight - gap;
 
-    // Position based on viewport quadrant
-    if (mouseX <= centerX && mouseY <= centerY) {
-        // Top-left quadrant -> Position bottom-right of mouse
-        top = mouseY + 10;
-        left = mouseX + 10;
-    } else if (mouseX > centerX && mouseY <= centerY) {
-        // Top-right quadrant -> Position bottom-left of mouse
-        top = mouseY + 10;
-        left = mouseX - popupRect.width - 10;
-    } else if (mouseX <= centerX && mouseY > centerY) {
-        // Bottom-left quadrant -> Position top-right of mouse
-        top = mouseY - popupRect.height - 10;
-        left = mouseX + 10;
-    } else {
-        // Bottom-right quadrant -> Position top-left of mouse
-        top = mouseY - popupRect.height - 10;
-        left = mouseX - popupRect.width - 10;
+    if (wouldOverflowBottom) {
+        top = rect.top - popupRect.height - gap;
     }
 
-    // Ensure popup stays within viewport bounds
-    left = Math.max(10, Math.min(left, viewportWidth - popupRect.width - 10));
-    top = Math.max(10, Math.min(top, viewportHeight - popupRect.height - 10));
+    if (left + popupRect.width > viewportWidth - gap) {
+        left = viewportWidth - popupRect.width - gap;
+    }
+
+    if (left < gap) {
+        left = gap;
+    }
+
+    if (top < gap) {
+        top = gap;
+    }
+
+    if (top + popupRect.height > viewportHeight - gap) {
+        top = Math.max(gap, viewportHeight - popupRect.height - gap);
+    }
 
     popup.style.top = `${top}px`;
     popup.style.left = `${left}px`;
 }
 
-export function createPopup(wordInfo, rect) {
-    const popup = document.createElement('div');
-    popup.className = 'yomisaver-popup fade-in';
+export function createPopup(wordInfo, rect, anchorElement = null) {
+    const popup = createElement('div', 'yomisaver-popup fade-in');
 
-    const sentence = getSentenceContext(wordInfo.word);
-    const cleanWord = wordInfo.word.replace(/<[^>]+>/g, "");
-    
-    const meaningsHTML = formatMeanings(wordInfo);
-    const jlptInfo = wordInfo.jlpt.length ? 
-        `<div class="jlpt">${wordInfo.jlpt.join(', ').toUpperCase()}</div>` : '';
+    const cleanWord = String(wordInfo.surface || wordInfo.word || '').replace(/<[^>]+>/g, '');
+    const baseForm = wordInfo.baseForm || cleanWord;
+    const reading = wordInfo.reading || '';
+    const meanings = normaliseArray(wordInfo.meanings);
+    const jlpt = normaliseArray(wordInfo.jlpt);
+    const sentence = wordInfo.sentence || getSentenceContext(cleanWord, anchorElement);
+    const isLoading = Boolean(wordInfo.isLoading);
+    const statusText = wordInfo.statusText || '';
 
-    // Structured popup content
-    popup.innerHTML = `
-        <div class="header">
-            <button class="close-button" aria-label="Close">×</button>
-            <div class="word">${cleanWord}</div>
-            ${wordInfo.reading ? `<div class="reading">${wordInfo.reading}</div>` : ''}
-            ${jlptInfo}
-        </div>
-        <div class="meanings-container">
-            ${meaningsHTML}
-            <button class="save-vocab-btn">Save to Flashcards</button>
-        </div>
-    `;
+    const header = createElement('div', 'header');
 
-    // Add to DOM first for measurements
+    const closeButton = createElement('button', 'close-button', '×');
+    closeButton.setAttribute('aria-label', 'Close');
+
+    const wordElement = createElement('div', 'word', cleanWord);
+
+    header.appendChild(closeButton);
+    header.appendChild(wordElement);
+
+    if (reading) {
+        header.appendChild(createElement('div', 'reading', reading));
+    }
+
+    if (baseForm && baseForm !== cleanWord) {
+        header.appendChild(createElement('div', 'reading', `Dictionary form: ${baseForm}`));
+    }
+
+    if (jlpt.length) {
+        header.appendChild(createElement('div', 'jlpt', jlpt.join(', ').toUpperCase()));
+    }
+
+    const meaningsContainer = createElement('div', 'meanings-container');
+
+    if (isLoading) {
+        meaningsContainer.appendChild(
+            createElement('div', 'meaning-group', statusText || 'Looking up…')
+        );
+    } else if (meanings.length) {
+        meanings.forEach(meaning => {
+            meaningsContainer.appendChild(createMeaningGroup(meaning));
+        });
+    } else {
+        meaningsContainer.appendChild(
+            createElement('div', 'meaning-group', statusText || 'No definitions found.')
+        );
+    }
+
+    const saveButton = createElement('button', 'save-vocab-btn', 'Save to Flashcards');
+
+    if (isLoading) {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Looking up…';
+    }
+
+    meaningsContainer.appendChild(saveButton);
+
+    popup.appendChild(header);
+    popup.appendChild(meaningsContainer);
+
     document.body.appendChild(popup);
 
-    // Position popup using new logic
     positionPopup(popup, rect);
 
-    // Add event listeners
-    const closeButton = popup.querySelector('.close-button');
-    closeButton?.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        removeExistingPopup();
+    closeButton.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        popupManager.removeExistingPopup();
     });
 
-    // Update save button handler with complete info
-    popup.querySelector('.save-vocab-btn').addEventListener('click', (e) => {
-        const button = e.target;
-        
-        // Remove context collection
+    saveButton.addEventListener('click', event => {
+        if (isLoading) {
+            return;
+        }
+
+        const button = event.currentTarget;
+
         chrome.runtime.sendMessage({
             action: 'saveVocabulary',
-            text: wordInfo.word,
-            reading: wordInfo.reading,
+            text: cleanWord,
+            reading,
             wordInfo: {
-                reading: wordInfo.reading,
-                meanings: wordInfo.meanings,
-                jlpt: wordInfo.jlpt
+                surface: cleanWord,
+                baseForm,
+                reading,
+                meanings,
+                jlpt,
+                sentence,
+                partOfSpeech: wordInfo.partOfSpeech || '',
+                partOfSpeechDetails: wordInfo.partOfSpeechDetails || []
             }
         });
 
@@ -118,7 +191,7 @@ export function createPopup(wordInfo, rect) {
         button.classList.add('saved');
     });
 
-    // Set in manager
     popupManager.setPopup(popup);
+
     return popup;
 }

@@ -1,22 +1,44 @@
 import { initializeTokenizer } from './modules/tokenizer';
 import { isJapanesePage } from './modules/utils/japanese';
-import { createPopup } from './modules/popup/popup';
-import { injectFurigana } from './modules/furigana/injector';
+import { injectFurigana, shouldSkipTextNode } from './modules/furigana/injector';
 import { addSelectionListener } from './modules/events/listeners';
-import { lookupWord } from './modules/dictionary'; // Add this import
 
 let isInitializing = false;
+let listenersInitialized = false;
 
 async function initialize() {
-    if (isInitializing || document.documentElement.hasAttribute('data-yomisaver-processed')) return;
-    if (!isJapanesePage()) return;
+    if (isInitializing) {
+        return;
+    }
+
+    if (document.documentElement.hasAttribute('data-yomisaver-processed')) {
+        return;
+    }
+
+    if (!document.body) {
+        return;
+    }
+
+    if (!isJapanesePage()) {
+        return;
+    }
 
     isInitializing = true;
+
     try {
         await initializeTokenizer();
         await traverseDOM(document.body);
+
         document.documentElement.setAttribute('data-yomisaver-processed', 'true');
-        addSelectionListener();
+
+        if (!listenersInitialized) {
+            addSelectionListener();
+            listenersInitialized = true;
+        }
+
+        await applySavedSettings();
+    } catch (error) {
+        console.error('YomiSaver initialization failed:', error);
     } finally {
         isInitializing = false;
     }
@@ -24,40 +46,91 @@ async function initialize() {
 
 async function traverseDOM(root) {
     try {
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-        const promises = [];
+        const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode(node) {
+                    return shouldSkipTextNode(node)
+                        ? NodeFilter.FILTER_REJECT
+                        : NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        const textNodes = [];
         let node;
+
         while ((node = walker.nextNode())) {
-            promises.push(injectFurigana(node));
+            textNodes.push(node);
         }
-        await Promise.all(promises.filter(Boolean));
+
+        for (const textNode of textNodes) {
+            await injectFurigana(textNode);
+        }
     } catch (error) {
-        console.error("Error in traverseDOM:", error);
+        console.error('Error in traverseDOM:', error);
     }
 }
 
-// Initialize on page load
+function updatePopupSize(size) {
+    document.documentElement.style.setProperty('--popup-scale', size);
+}
+
+function updateFontSize(size) {
+    document.documentElement.style.setProperty('--font-scale', size);
+}
+
+function setFuriganaVisibility(visible) {
+    const furiganaElements = document.querySelectorAll('.yomisaver-ruby rt');
+
+    furiganaElements.forEach(rt => {
+        rt.style.display = visible ? 'block' : 'none';
+    });
+
+    document.documentElement.dataset.yomisaverFurigana = visible ? 'visible' : 'hidden';
+}
+
+function applySavedSettings() {
+    return new Promise(resolve => {
+        chrome.storage.sync.get(['popupSize', 'fontSize', 'furiganaVisible'], data => {
+            if (data.popupSize) {
+                updatePopupSize(data.popupSize / 100);
+            }
+
+            if (data.fontSize) {
+                updateFontSize(data.fontSize / 100);
+            }
+
+            if (data.furiganaVisible !== undefined) {
+                setFuriganaVisibility(data.furiganaVisible);
+            }
+
+            resolve();
+        });
+    });
+}
+
+chrome.runtime.onMessage.addListener((message) => {
+    if (!message || !message.action) {
+        return;
+    }
+
+    if (message.action === 'updatePopupSize') {
+        updatePopupSize(message.size);
+    }
+
+    if (message.action === 'updateFontSize') {
+        updateFontSize(message.size);
+    }
+
+    if (message.action === 'toggleFurigana') {
+        setFuriganaVisibility(message.visible);
+    }
+});
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize, { once: true });
 } else {
     initialize();
 }
-
-// Add message listener for size updates
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'updatePopupSize') {
-        document.documentElement.style.setProperty('--popup-scale', message.size);
-    } else if (message.action === 'updateFontSize') {
-        document.documentElement.style.setProperty('--font-scale', message.size);
-    }
-});
-
-// Add message listener for furigana toggle
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === 'toggleFurigana') {
-        const furiganaElements = document.querySelectorAll('rt');
-        furiganaElements.forEach(rt => {
-            rt.style.display = message.visible ? 'block' : 'none';
-        });
-    }
-});

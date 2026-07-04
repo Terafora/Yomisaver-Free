@@ -14,18 +14,41 @@ class PopupManager {
     }
 
     removeExistingPopup() {
-        if (!this.popup) return;
-        
-        console.log('Removing popup');
+        if (!this.popup) {
+            return;
+        }
+
+        const popupToRemove = this.popup;
+
         this.clearTimers();
-        
-        this.popup.classList.add('fade-out');
-        setTimeout(() => {
-            if (this.popup && this.popup.parentNode) {
-                this.popup.remove();
+
+        popupToRemove.classList.add('fade-out');
+
+        this.fadeTimer = setTimeout(() => {
+            if (popupToRemove.parentNode) {
+                popupToRemove.remove();
             }
-            this.popup = null;
+
+            if (this.popup === popupToRemove) {
+                this.popup = null;
+            }
+
+            this.fadeTimer = null;
         }, 300);
+    }
+
+    removeImmediately() {
+        if (!this.popup) {
+            return;
+        }
+
+        this.clearTimers();
+
+        if (this.popup.parentNode) {
+            this.popup.remove();
+        }
+
+        this.popup = null;
     }
 
     clearTimers() {
@@ -33,6 +56,7 @@ class PopupManager {
             clearTimeout(this.fadeTimer);
             this.fadeTimer = null;
         }
+
         if (this.activePopupTimer) {
             clearTimeout(this.activePopupTimer);
             this.activePopupTimer = null;

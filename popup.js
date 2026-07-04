@@ -1,291 +1,543 @@
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Popup script loaded');
+const VOCAB_STORAGE_KEY = 'vocabList';
 
-    // Debug helper
-    function debug(msg) {
-        console.log(msg);
-        const debugDiv = document.getElementById('debug');
-        if (debugDiv) {
-            debugDiv.textContent += msg + '\n';
-        }
-    }
+document.addEventListener('DOMContentLoaded', initPopup);
 
-    // Hide all tabs except flashcards initially
-    document.querySelectorAll('.yomisaver-tab-content:not(#flashcards)').forEach(content => {
-        content.classList.add('hidden');
-    });
+function initPopup() {
+    initTabs();
+    initSettings();
+    initFlashcards();
+    initAcknowledgements();
+    initRuntimeListeners();
+}
 
-    // Tab switching
-    document.querySelectorAll('.yomisaver-tab').forEach(tab => {
-        debug('Found tab: ' + tab.dataset.tab);
+function initTabs() {
+    const tabs = document.querySelectorAll('.yomisaver-tab');
+
+    tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            debug('Tab clicked: ' + tab.dataset.tab);
-            
-            // Special handling for acknowledgements
-            const isAcknowledgementsVisible = !document.getElementById('acknowledgements').classList.contains('hidden');
-            if (isAcknowledgementsVisible) {
-                document.getElementById('acknowledgements').classList.add('hidden');
-                document.getElementById('settings').classList.remove('hidden');
+            const tabId = tab.dataset.tab;
+
+            if (!tabId) {
+                return;
             }
-            
-            // Remove active and hidden classes from all tabs
+
             document.querySelectorAll('.yomisaver-tab-content').forEach(content => {
                 content.classList.remove('active');
                 content.classList.add('hidden');
             });
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.yomisaver-tab').forEach(t => {
-                t.classList.remove('active');
+
+            document.querySelectorAll('.yomisaver-tab').forEach(tabButton => {
+                tabButton.classList.remove('active');
             });
-            
-            // Show selected content and activate tab
-            const tabId = tab.dataset.tab;
-            const content = document.getElementById(tabId);
-            content.classList.remove('hidden');
-            content.classList.add('active');
+
+            const selectedContent = document.getElementById(tabId);
+
+            if (selectedContent) {
+                selectedContent.classList.remove('hidden');
+                selectedContent.classList.add('active');
+            }
+
             tab.classList.add('active');
         });
     });
+}
 
-    // Load flashcards
-    loadFlashcards();
-
-    // Settings handlers
+function initSettings() {
     const popupSize = document.getElementById('popupSize');
     const fontSize = document.getElementById('fontSize');
-
-    // Update size functions
-    function updatePopupSize(value) {
-        const size = value / 100;
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                action: 'updatePopupSize',
-                size: size
-            });
-        });
-    }
-
-    function updateFontSize(value) {
-        const size = value / 100;
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, {
-                action: 'updateFontSize',
-                size: size
-            });
-        });
-    }
-
-    // Add input handlers for real-time updates
-    popupSize.addEventListener('input', (e) => {
-        updatePopupSize(e.target.value);
-    });
-
-    fontSize.addEventListener('input', (e) => {
-        updateFontSize(e.target.value);
-    });
-
-    // Save settings on change
-    popupSize.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ 'popupSize': e.target.value });
-    });
-
-    fontSize.addEventListener('change', (e) => {
-        chrome.storage.sync.set({ 'fontSize': e.target.value });
-    });
-
-    // Add event listener for toggle furigana button
     const toggleFuriganaButton = document.getElementById('toggleFurigana');
+
+    if (!popupSize || !fontSize || !toggleFuriganaButton) {
+        return;
+    }
+
+    popupSize.addEventListener('input', event => {
+        updatePopupSize(event.target.value);
+    });
+
+    popupSize.addEventListener('change', event => {
+        chrome.storage.sync.set({ popupSize: event.target.value });
+    });
+
+    fontSize.addEventListener('input', event => {
+        updateFontSize(event.target.value);
+    });
+
+    fontSize.addEventListener('change', event => {
+        chrome.storage.sync.set({ fontSize: event.target.value });
+    });
+
     toggleFuriganaButton.addEventListener('click', () => {
-        chrome.storage.sync.get('furiganaVisible', (data) => {
-            const furiganaVisible = !data.furiganaVisible;
-            chrome.storage.sync.set({ 'furiganaVisible': furiganaVisible }, () => {
-                toggleFuriganaButton.textContent = furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
-                chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-                    chrome.tabs.sendMessage(tabs[0].id, {
-                        action: 'toggleFurigana',
-                        visible: furiganaVisible
-                    });
-                });
-            });
-        });
-    });
+        chrome.storage.sync.get({ furiganaVisible: true }, data => {
+            const nextValue = !data.furiganaVisible;
 
-    // Load saved settings
-    chrome.storage.sync.get(['popupSize', 'fontSize', 'furiganaVisible'], (data) => {
-        if (data.popupSize) {
-            popupSize.value = data.popupSize;
-            updatePopupSize(data.popupSize);
-        }
-        if (data.fontSize) {
-            fontSize.value = data.fontSize;
-            updateFontSize(data.fontSize);
-        }
-        if (data.furiganaVisible !== undefined) {
-            toggleFuriganaButton.textContent = data.furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
-            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, {
+            chrome.storage.sync.set({ furiganaVisible: nextValue }, () => {
+                setFuriganaButtonText(toggleFuriganaButton, nextValue);
+
+                sendMessageToActiveTab({
                     action: 'toggleFurigana',
-                    visible: data.furiganaVisible
+                    visible: nextValue
                 });
             });
-        }
-    });
-
-    // Attach export functionality to button
-    document.getElementById('export-flashcards').addEventListener('click', exportFlashcards);
-
-    // Add event listener for acknowledgements button
-    document.getElementById('showAcknowledgements').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent event bubbling
-        const settings = document.getElementById('settings');
-        const acknowledgements = document.getElementById('acknowledgements');
-        settings.classList.add('hidden');
-        acknowledgements.classList.remove('hidden');
-        acknowledgements.classList.add('active');
-    });
-
-    // Add event listener for back button in acknowledgements
-    document.getElementById('backToSettings').addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent event bubbling
-        const settings = document.getElementById('settings');
-        const acknowledgements = document.getElementById('acknowledgements');
-        acknowledgements.classList.add('hidden');
-        acknowledgements.classList.remove('active');
-        settings.classList.remove('hidden');
-        settings.classList.add('active');
-    });
-});
-
-function loadFlashcards() {
-    console.log('Loading flashcards...');
-    chrome.storage.local.get('vocabList', (data) => {
-        console.log('Vocab data:', data);
-        const vocabList = data.vocabList || [];
-        const vocabContainer = document.getElementById('vocab-container');
-        
-        if (!vocabContainer) return;
-
-        if (vocabList.length === 0) {
-            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
-            return;
-        }
-
-        vocabContainer.innerHTML = '';
-        vocabList.reverse().forEach((entry, index) => {
-            console.log('Processing flashcard entry:', entry);
-
-            const entryElement = document.createElement('div');
-            entryElement.className = 'yomisaver-vocab-entry';
-            entryElement.innerHTML = `
-                <div class="vocab-header">
-                    <input type="checkbox" class="select-flashcard" data-index="${index}">
-                    <div class="word-info">
-                        <h3>${entry.word}</h3>
-                        ${entry.reading ? `<p class="reading">${entry.reading}</p>` : ''}
-                    </div>
-                    <button class="delete-vocab" title="Delete flashcard">
-                        <svg viewBox="0 0 24 24" width="16" height="16">
-                            <path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                        </svg>
-                    </button>
-                </div>
-                ${entry.wordInfo?.meanings?.map(m => 
-                    `<div class="meaning">${m.definitions.join('; ')}</div>`
-                ).join('') || ''}
-                ${entry.wordInfo?.jlpt?.length ? 
-                    `<div class="jlpt">${entry.wordInfo.jlpt.join(', ').toUpperCase()}</div>` : ''}
-            `;
-
-            // Add delete handler directly to the button
-            const deleteBtn = entryElement.querySelector('.delete-vocab');
-            deleteBtn.addEventListener('click', () => {
-                chrome.storage.local.get('vocabList', (data) => {
-                    const newList = data.vocabList.filter((_, i) => i !== index);
-                    chrome.storage.local.set({ vocabList: newList }, () => {
-                        entryElement.remove();
-                        if (newList.length === 0) {
-                            vocabContainer.innerHTML = '<p class="yomisaver-coming-soon">No flashcards saved yet!</p>';
-                        }
-                    });
-                });
-            });
-
-            vocabContainer.appendChild(entryElement);
         });
+    });
+
+    chrome.storage.sync.get(
+        {
+            popupSize: '100',
+            fontSize: '100',
+            furiganaVisible: true
+        },
+        data => {
+            popupSize.value = data.popupSize;
+            fontSize.value = data.fontSize;
+
+            setFuriganaButtonText(toggleFuriganaButton, data.furiganaVisible);
+
+            updatePopupSize(data.popupSize);
+            updateFontSize(data.fontSize);
+
+            sendMessageToActiveTab({
+                action: 'toggleFurigana',
+                visible: data.furiganaVisible
+            });
+        }
+    );
+}
+
+function updatePopupSize(value) {
+    const size = Number(value) / 100;
+
+    sendMessageToActiveTab({
+        action: 'updatePopupSize',
+        size
     });
 }
 
-function exportFlashcards() {
-    chrome.storage.local.get('vocabList', (data) => {
-        const vocabList = data.vocabList || [];
-        const selectedIndexes = Array.from(document.querySelectorAll('.select-flashcard:checked')).map(cb => parseInt(cb.dataset.index));
-        const selectedFlashcards = selectedIndexes.map(index => vocabList[index]);
+function updateFontSize(value) {
+    const size = Number(value) / 100;
 
-        if (selectedFlashcards.length === 0) {
-            alert('No flashcards selected for export.');
-            return;
-        }
-
-        const ankiData = selectedFlashcards.map(entry => {
-            const front = entry.word;
-            const back = `
-                ${entry.reading ? `<div>Reading: ${entry.reading}</div>` : ''}
-                ${entry.wordInfo?.meanings?.map(m => `<div>Definition: ${m.definitions.join('; ')}</div>`).join('') || ''}
-                ${entry.wordInfo?.jlpt?.length ? `<div>JLPT: ${entry.wordInfo.jlpt.join(', ').toUpperCase()}</div>` : ''}
-            `.trim().replace(/\n\s+/g, ' '); // Remove extra whitespace
-            const tags = entry.wordInfo?.jlpt?.join(' ') || '';
-            return `${front}\t${back}\t${tags}`;
-        }).join('\n');
-
-        const blob = new Blob([ankiData], { type: 'text/tab-separated-values' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'flashcards.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    sendMessageToActiveTab({
+        action: 'updateFontSize',
+        size
     });
 }
 
-// Listen for vocab updates
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === 'vocabUpdated') {
-        loadFlashcards();
-    }
-});
+function setFuriganaButtonText(button, furiganaVisible) {
+    button.textContent = furiganaVisible ? 'Hide Furigana' : 'Show Furigana';
+}
 
-// Add message listener for furigana toggle
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === 'toggleFurigana') {
-        const furiganaElements = document.querySelectorAll('rt');
-        furiganaElements.forEach(rt => {
-            rt.style.display = message.visible ? 'block' : 'none';
-        });
-    }
-});
+function initFlashcards() {
+    const exportButton = document.getElementById('export-flashcards');
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
+    if (exportButton) {
+        exportButton.addEventListener('click', exportFlashcards);
+    }
+
     loadFlashcards();
+}
 
-    // Add event listeners for acknowledgements and back button
-    const showAcknowledgementsButton = document.getElementById('showAcknowledgements');
-    const backToSettingsButton = document.getElementById('backToSettings');
+async function loadFlashcards() {
+    const vocabContainer = document.getElementById('vocab-container');
+
+    if (!vocabContainer) {
+        return;
+    }
+
+    const vocabList = await getMigratedVocabList();
+
+    clearElement(vocabContainer);
+
+    if (!vocabList.length) {
+        const emptyMessage = createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!');
+        vocabContainer.appendChild(emptyMessage);
+        return;
+    }
+
+    const displayList = [...vocabList].sort((a, b) => b.savedAt - a.savedAt);
+
+    displayList.forEach(entry => {
+        vocabContainer.appendChild(createFlashcardElement(entry));
+    });
+}
+
+function createFlashcardElement(entry) {
+    const entryElement = createElement('div', 'yomisaver-vocab-entry');
+    entryElement.dataset.id = entry.id;
+
+    const header = createElement('div', 'vocab-header');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'select-flashcard';
+    checkbox.dataset.id = entry.id;
+    checkbox.setAttribute('aria-label', `Select ${entry.surface}`);
+
+    const wordInfo = createElement('div', 'word-info');
+
+    const wordTitle = createElement('h3', '', entry.surface);
+    wordInfo.appendChild(wordTitle);
+
+    if (entry.reading) {
+        wordInfo.appendChild(createElement('p', 'reading', entry.reading));
+    }
+
+    const deleteButton = createElement('button', 'delete-vocab', 'Delete');
+    deleteButton.type = 'button';
+    deleteButton.title = 'Delete flashcard';
+
+    deleteButton.addEventListener('click', () => {
+        deleteFlashcard(entry.id);
+    });
+
+    header.appendChild(checkbox);
+    header.appendChild(wordInfo);
+    header.appendChild(deleteButton);
+
+    entryElement.appendChild(header);
+
+    const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
+
+    meanings.forEach(meaning => {
+        const definitions = Array.isArray(meaning.definitions)
+            ? meaning.definitions.filter(Boolean)
+            : [];
+
+        if (definitions.length) {
+            entryElement.appendChild(
+                createElement('div', 'meaning', definitions.join('; '))
+            );
+        }
+    });
+
+    if (entry.jlptLevel) {
+        entryElement.appendChild(
+            createElement('div', 'jlpt', formatJlptLevel(entry.jlptLevel))
+        );
+    }
+
+    return entryElement;
+}
+
+async function deleteFlashcard(id) {
+    const vocabList = await getMigratedVocabList();
+    const updatedList = vocabList.filter(entry => entry.id !== id);
+
+    await storageSet({ [VOCAB_STORAGE_KEY]: updatedList });
+
+    const entryElement = document.querySelector(`.yomisaver-vocab-entry[data-id="${cssEscape(id)}"]`);
+
+    if (entryElement) {
+        entryElement.remove();
+    }
+
+    const vocabContainer = document.getElementById('vocab-container');
+
+    if (vocabContainer && updatedList.length === 0) {
+        clearElement(vocabContainer);
+        vocabContainer.appendChild(
+            createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!')
+        );
+    }
+}
+
+async function exportFlashcards() {
+    const vocabList = await getMigratedVocabList();
+    const selectedIds = Array.from(document.querySelectorAll('.select-flashcard:checked'))
+        .map(checkbox => checkbox.dataset.id)
+        .filter(Boolean);
+
+    if (!selectedIds.length) {
+        alert('No flashcards selected for export.');
+        return;
+    }
+
+    const vocabById = new Map(vocabList.map(entry => [entry.id, entry]));
+    const selectedFlashcards = selectedIds
+        .map(id => vocabById.get(id))
+        .filter(Boolean);
+
+    if (!selectedFlashcards.length) {
+        alert('No valid flashcards selected for export.');
+        return;
+    }
+
+    const ankiData = selectedFlashcards
+        .map(createAnkiExportRow)
+        .join('\n');
+
+    const blob = new Blob([ankiData], { type: 'text/tab-separated-values' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+
+    downloadLink.href = url;
+    downloadLink.download = 'yomisaver-flashcards.txt';
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    URL.revokeObjectURL(url);
+}
+
+function createAnkiExportRow(entry) {
+    const front = cleanTsvField(entry.surface);
+
+    const backParts = [];
+
+    if (entry.reading) {
+        backParts.push(`<div>Reading: ${escapeHtml(entry.reading)}</div>`);
+    }
+
+    const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
+
+    meanings.forEach(meaning => {
+        const definitions = Array.isArray(meaning.definitions)
+            ? meaning.definitions.filter(Boolean)
+            : [];
+
+        if (definitions.length) {
+            backParts.push(`<div>Definition: ${escapeHtml(definitions.join('; '))}</div>`);
+        }
+    });
+
+    if (entry.jlptLevel) {
+        backParts.push(`<div>JLPT: ${escapeHtml(formatJlptLevel(entry.jlptLevel))}</div>`);
+    }
+
+    if (entry.sentence) {
+        backParts.push(`<div>Sentence: ${escapeHtml(entry.sentence)}</div>`);
+    }
+
+    const back = cleanTsvField(backParts.join(' '));
+    const tags = cleanTsvField(entry.jlptLevel ? `jlpt-${entry.jlptLevel}` : '');
+
+    return `${front}\t${back}\t${tags}`;
+}
+
+function initAcknowledgements() {
+    const showButton = document.getElementById('showAcknowledgements');
+    const backButton = document.getElementById('backToSettings');
     const settingsSection = document.getElementById('settings');
     const acknowledgementsSection = document.getElementById('acknowledgements');
 
-    if (showAcknowledgementsButton && backToSettingsButton && settingsSection && acknowledgementsSection) {
-        showAcknowledgementsButton.addEventListener('click', () => {
-            settingsSection.classList.add('hidden');
-            acknowledgementsSection.classList.remove('hidden');
-        });
-
-        backToSettingsButton.addEventListener('click', () => {
-            acknowledgementsSection.classList.add('hidden');
-            settingsSection.classList.remove('hidden');
-        });
+    if (!showButton || !backButton || !settingsSection || !acknowledgementsSection) {
+        return;
     }
-});
+
+    showButton.addEventListener('click', event => {
+        event.stopPropagation();
+
+        settingsSection.classList.add('hidden');
+        settingsSection.classList.remove('active');
+
+        acknowledgementsSection.classList.remove('hidden');
+        acknowledgementsSection.classList.add('active');
+    });
+
+    backButton.addEventListener('click', event => {
+        event.stopPropagation();
+
+        acknowledgementsSection.classList.add('hidden');
+        acknowledgementsSection.classList.remove('active');
+
+        settingsSection.classList.remove('hidden');
+        settingsSection.classList.add('active');
+    });
+}
+
+function initRuntimeListeners() {
+    chrome.runtime.onMessage.addListener(message => {
+        if (message?.action === 'vocabUpdated') {
+            loadFlashcards();
+        }
+    });
+}
+
+async function getMigratedVocabList() {
+    const data = await storageGet({ [VOCAB_STORAGE_KEY]: [] });
+    const rawList = Array.isArray(data[VOCAB_STORAGE_KEY])
+        ? data[VOCAB_STORAGE_KEY]
+        : [];
+
+    const migratedList = rawList
+        .map(normaliseFlashcardEntry)
+        .filter(entry => entry.surface);
+
+    const changed = JSON.stringify(rawList) !== JSON.stringify(migratedList);
+
+    if (changed) {
+        await storageSet({ [VOCAB_STORAGE_KEY]: migratedList });
+    }
+
+    return migratedList;
+}
+
+function normaliseFlashcardEntry(entry) {
+    const surface = cleanText(entry.surface || entry.word || entry.text || '');
+    const reading = cleanText(entry.reading || entry.wordInfo?.reading || '');
+    const savedAt = Number(entry.savedAt || entry.timestamp || Date.now());
+    const updatedAt = Number(entry.updatedAt || savedAt);
+
+    const meanings = normaliseMeanings(entry.meanings || entry.wordInfo?.meanings || []);
+    const jlptLevel = extractJlptLevel(
+        entry.jlptLevel || entry.jlpt || entry.wordInfo?.jlpt || []
+    );
+
+    const normalisedEntry = {
+        id: entry.id || createFlashcardId({ surface, reading, savedAt }),
+        surface,
+        word: surface,
+        baseForm: cleanText(entry.baseForm || entry.basicForm || surface),
+        reading,
+        meanings,
+        jlptLevel,
+        sentence: cleanText(entry.sentence || entry.wordInfo?.sentence || ''),
+        pageUrl: entry.pageUrl || '',
+        pageTitle: entry.pageTitle || '',
+        source: entry.source || 'legacy',
+        savedAt,
+        updatedAt
+    };
+
+    normalisedEntry.wordInfo = {
+        reading: normalisedEntry.reading,
+        meanings: normalisedEntry.meanings,
+        jlpt: normalisedEntry.jlptLevel ? [`jlpt-${normalisedEntry.jlptLevel}`] : [],
+        sentence: normalisedEntry.sentence
+    };
+
+    return normalisedEntry;
+}
+
+function normaliseMeanings(meanings) {
+    if (!Array.isArray(meanings)) {
+        return [];
+    }
+
+    return meanings.map(meaning => ({
+        definitions: normaliseStringArray(meaning.definitions),
+        partOfSpeech: normaliseStringArray(meaning.partOfSpeech || meaning.partsOfSpeech),
+        tags: normaliseStringArray(meaning.tags),
+        info: normaliseStringArray(meaning.info)
+    }));
+}
+
+function normaliseStringArray(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map(item => cleanText(item))
+            .filter(Boolean);
+    }
+
+    const cleaned = cleanText(value);
+    return cleaned ? [cleaned] : [];
+}
+
+function extractJlptLevel(value) {
+    const values = Array.isArray(value) ? value : [value];
+
+    for (const item of values) {
+        const text = String(item || '').toLowerCase();
+        const match = text.match(/n[1-5]/);
+
+        if (match) {
+            return match[0];
+        }
+    }
+
+    return '';
+}
+
+function formatJlptLevel(level) {
+    const normalised = extractJlptLevel(level);
+
+    if (!normalised) {
+        return '';
+    }
+
+    return `JLPT ${normalised.toUpperCase()}`;
+}
+
+function createFlashcardId({ surface, reading, savedAt }) {
+    return [
+        cleanText(surface),
+        cleanText(reading),
+        Number(savedAt) || Date.now()
+    ].join('|');
+}
+
+function createElement(tagName, className = '', textContent = '') {
+    const element = document.createElement(tagName);
+
+    if (className) {
+        element.className = className;
+    }
+
+    if (textContent !== '') {
+        element.textContent = textContent;
+    }
+
+    return element;
+}
+
+function clearElement(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+function cleanText(value) {
+    return String(value || '').trim();
+}
+
+function cleanTsvField(value) {
+    return String(value || '')
+        .replace(/\t/g, ' ')
+        .replace(/\r?\n/g, ' ')
+        .trim();
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(value);
+    }
+
+    return String(value).replace(/["\\]/g, '\\$&');
+}
+
+function storageGet(defaults) {
+    return new Promise(resolve => {
+        chrome.storage.local.get(defaults, resolve);
+    });
+}
+
+function storageSet(data) {
+    return new Promise(resolve => {
+        chrome.storage.local.set(data, resolve);
+    });
+}
+
+function sendMessageToActiveTab(message) {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        const activeTab = tabs[0];
+
+        if (!activeTab?.id) {
+            return;
+        }
+
+        chrome.tabs.sendMessage(activeTab.id, message, () => {
+            // Ignore errors when the active tab has no YomiSaver content script.
+            void chrome.runtime.lastError;
+        });
+    });
+}
