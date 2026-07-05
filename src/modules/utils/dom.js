@@ -1,58 +1,136 @@
 export function getCleanSelectedText() {
     const selection = window.getSelection();
-    if (!selection.rangeCount) return null;
 
-    const range = selection.getRangeAt(0);
+    if (!selection || selection.rangeCount === 0) {
+        return '';
+    }
+
     const container = document.createElement('div');
-    container.appendChild(range.cloneContents());
-    
-    container.querySelectorAll('rt').forEach(rt => rt.remove());
-    container.querySelectorAll('ruby').forEach(ruby => {
-        ruby.replaceWith(ruby.textContent.trim());
-    });
-    
-    return container.textContent.trim();
+
+    for (let index = 0; index < selection.rangeCount; index += 1) {
+        container.appendChild(selection.getRangeAt(index).cloneContents());
+    }
+
+    removeRubyReadings(container);
+
+    return cleanText(container.textContent);
 }
 
 export function getCleanTextFromElement(element) {
-    const rubyElement = element.closest('ruby');
-    if (rubyElement) {
-        const clone = rubyElement.cloneNode(true);
-        clone.querySelectorAll('rt').forEach(rt => rt.remove());
-        return clone.textContent.trim();
+    if (!element) {
+        return '';
     }
-    return element.textContent.trim();
+
+    if (element.dataset?.surface) {
+        return cleanText(element.dataset.surface);
+    }
+
+    const clone = element.cloneNode(true);
+    removeRubyReadings(clone);
+
+    return cleanText(clone.textContent);
 }
 
-export function getSentenceContext(word) {
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return "";
-    
-    const range = selection.getRangeAt(0);
-    const container = range.commonAncestorContainer;
-    const fullText = container.textContent;
-    const wordStart = fullText.indexOf(word);
-    
-    if (wordStart === -1) return "";
-    
-    // Find sentence boundaries (。.!?！？)
-    const sentenceBreaks = /[。.!?！？]/g;
-    let startPos = 0;
-    let endPos = fullText.length;
-    
-    // Find previous sentence break
-    const textBefore = fullText.substring(0, wordStart);
-    const lastBreak = [...textBefore.matchAll(sentenceBreaks)].pop();
-    if (lastBreak) {
-        startPos = lastBreak.index + 1;
+export function getTokenMetaFromElement(element) {
+    if (!element?.dataset) {
+        return null;
     }
-    
-    // Find next sentence break
-    const textAfter = fullText.substring(wordStart);
-    const nextBreak = textAfter.match(sentenceBreaks);
-    if (nextBreak) {
-        endPos = wordStart + nextBreak.index + 1;
+
+    return {
+        surface: cleanText(element.dataset.surface || getCleanTextFromElement(element)),
+        baseForm: cleanText(element.dataset.baseForm || element.dataset.basicForm || ''),
+        reading: cleanText(element.dataset.reading || ''),
+        rawReading: cleanText(element.dataset.rawReading || ''),
+        partOfSpeech: cleanText(element.dataset.partOfSpeech || ''),
+        partOfSpeechDetails: parseDatasetList(element.dataset.partOfSpeechDetails),
+        jlptLevel: cleanText(element.dataset.jlptLevel || ''),
+        properNoun: element.dataset.properNoun === 'true',
+        isKanjiWord: element.dataset.isKanjiWord === 'true',
+        isJapanese: element.dataset.isJapanese !== 'false',
+        isPunctuation: element.dataset.isPunctuation === 'true'
+    };
+}
+
+export function getSentenceContext(word = '', anchorElement = null) {
+    const sourceElement = findSentenceSourceElement(anchorElement);
+
+    if (!sourceElement) {
+        return '';
     }
-    
-    return fullText.substring(startPos, endPos).trim();
+
+    const clone = sourceElement.cloneNode(true);
+    removeRubyReadings(clone);
+
+    const text = cleanText(clone.textContent);
+
+    if (!text) {
+        return '';
+    }
+
+    const cleanWord = cleanText(word);
+
+    if (!cleanWord) {
+        return text.slice(0, 240);
+    }
+
+    const sentence = findSentenceContainingWord(text, cleanWord);
+
+    return sentence || text.slice(0, 240);
+}
+
+export function removeRubyReadings(root) {
+    if (!root?.querySelectorAll) {
+        return;
+    }
+
+    root.querySelectorAll('rt, rp').forEach(element => {
+        element.remove();
+    });
+}
+
+function findSentenceSourceElement(anchorElement) {
+    if (!anchorElement) {
+        return document.body;
+    }
+
+    return anchorElement.closest(
+        'p, li, td, th, dd, dt, blockquote, figcaption, h1, h2, h3, h4, h5, h6'
+    ) || anchorElement.parentElement || document.body;
+}
+
+function findSentenceContainingWord(text, word) {
+    const sentences = text.match(/[^。！？!?]+[。！？!?]?/g) || [text];
+
+    return cleanText(
+        sentences.find(sentence => sentence.includes(word)) || ''
+    );
+}
+
+function parseDatasetList(value) {
+    const cleaned = cleanText(value);
+
+    if (!cleaned) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(cleaned);
+
+        if (Array.isArray(parsed)) {
+            return parsed.map(cleanText).filter(Boolean);
+        }
+    } catch {
+        // Fall back to comma parsing below.
+    }
+
+    return cleaned
+        .split(',')
+        .map(cleanText)
+        .filter(Boolean);
+}
+
+function cleanText(value) {
+    return String(value || '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }

@@ -12,10 +12,18 @@
         <button class="yomisaver-tab" data-tab="premium">Support</button>
     </div>
 
-    <div class="yomisaver-content-container">
         <div id="flashcards" class="yomisaver-tab-content active">
+            <div class="yomisaver-flashcard-toolbar">
+                <button id="select-all-flashcards" type="button">Select all</button>
+                <button id="clear-selected-flashcards" type="button">Clear selected</button>
+                <span id="selected-flashcard-count">0 selected</span>
+            </div>
+
             <div id="vocab-container"></div>
-            <button id="export-flashcards" class="yomisaver-premium-button">Export Selected Flashcards</button>
+
+            <button id="export-flashcards" class="yomisaver-premium-button">
+                Export Selected Flashcards
+            </button>
         </div>
 
         <div id="settings" class="yomisaver-tab-content">
@@ -88,6 +96,10 @@
                 <p class="yomisaver-help-text">
                     Choose the JLPT level up to which YomiSaver should hide furigana. Unknown words stay visible unless furigana is turned off.
                 </p>
+
+                <div id="jlpt-coverage" class="yomisaver-coverage-card">
+                    Checking JLPT coverage for this page…
+                </div>
 
                 <div id="reading-help-options" class="yomisaver-radio-list"></div>
             </div>

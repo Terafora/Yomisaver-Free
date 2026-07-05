@@ -1,210 +1,292 @@
-const CONTEXT_MENU_ID = 'saveVocab';
 const VOCAB_STORAGE_KEY = 'vocabList';
-const MAX_LOOKUP_ATTEMPTS = 3;
+const JISHO_API_URL = 'https://jisho.org/api/v1/search/words';
+const LOOKUP_RETRY_COUNT = 2;
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.removeAll(() => {
         chrome.contextMenus.create({
-            id: CONTEXT_MENU_ID,
-            title: 'Save Word to Flashcards',
+            id: 'saveToVocab',
+            title: 'Save to YomiSaver',
             contexts: ['selection']
         });
     });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
+    if (info.menuItemId !== 'saveToVocab') {
         return;
     }
 
-    saveVocabulary({
-        text: info.selectionText,
-        sentence: 'Context not provided',
-        reading: '',
-        wordInfo: null,
-        sender: { tab }
-    }).catch(error => {
-        console.error('Failed to save vocabulary from context menu:', error);
-    });
-});
+    const selectedText = cleanText(info.selectionText);
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!message || !message.action) {
+    if (!selectedText) {
         return;
     }
 
-    if (message.action === 'lookupWord') {
-        handleWordLookup(message.word)
-            .then(data => {
-                sendResponse({ success: true, data });
-            })
-            .catch(error => {
-                console.error('Lookup error:', error);
-                sendResponse({ success: false, error: error.message });
+    lookupWord(selectedText)
+        .then(result => {
+            const wordInfo = normaliseJishoResult(result?.data?.[0], selectedText);
+
+            return saveVocabEntry({
+                wordInfo,
+                surface: wordInfo.surface,
+                baseForm: wordInfo.baseForm,
+                reading: wordInfo.reading,
+                meanings: wordInfo.meanings,
+                jlptLevel: wordInfo.jlptLevel,
+                sentence: '',
+                pageUrl: tab?.url || '',
+                pageTitle: tab?.title || '',
+                source: 'context-menu'
             });
-
-        return true;
-    }
-
-    if (message.action === 'saveVocabulary') {
-        saveVocabulary({
-            text: message.text,
-            sentence: message.sentence || 'Context not provided',
-            reading: message.reading || 'Reading unavailable',
-            wordInfo: message.wordInfo || null,
-            sender
         })
-            .then(result => {
-                sendResponse(result);
-            })
-            .catch(error => {
-                console.error('Save vocabulary error:', error);
-                sendResponse({ success: false, error: error.message });
-            });
-
-        return true;
-    }
+        .then(() => {
+            broadcastVocabUpdated();
+        })
+        .catch(error => {
+            console.warn('YomiSaver context menu save failed:', error);
+        });
 });
 
-async function handleWordLookup(word) {
-    if (!word || !word.trim()) {
-        throw new Error('No word provided for lookup.');
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    handleMessage(request, sender)
+        .then(response => {
+            sendResponse(response);
+        })
+        .catch(error => {
+            console.error('YomiSaver background message failed:', error);
+
+            sendResponse({
+                success: false,
+                error: error?.message || String(error)
+            });
+        });
+
+    return true;
+});
+
+async function handleMessage(request, sender) {
+    if (!request || !request.action) {
+        return {
+            success: false,
+            error: 'Missing action.'
+        };
     }
 
+    if (request.action === 'lookupWord') {
+        const word = cleanText(request.word || request.query);
+
+        if (!word) {
+            return {
+                success: false,
+                error: 'Missing lookup word.'
+            };
+        }
+
+        const data = await lookupWord(word);
+
+        return {
+            success: true,
+            data
+        };
+    }
+
+    if (request.action === 'saveVocab') {
+        const savedEntry = await saveVocabEntry({
+            ...request,
+            pageUrl: request.pageUrl || sender?.tab?.url || '',
+            pageTitle: request.pageTitle || sender?.tab?.title || ''
+        });
+
+        broadcastVocabUpdated();
+
+        return {
+            success: true,
+            saved: true,
+            duplicate: Boolean(savedEntry.duplicate),
+            entry: savedEntry.entry
+        };
+    }
+
+    return {
+        success: false,
+        error: `Unknown action: ${request.action}`
+    };
+}
+
+async function lookupWord(word) {
     let lastError = null;
 
-    for (let attempt = 1; attempt <= MAX_LOOKUP_ATTEMPTS; attempt++) {
+    for (let attempt = 0; attempt <= LOOKUP_RETRY_COUNT; attempt += 1) {
         try {
             const response = await fetch(
-                `https://jisho.org/api/v1/search/words?keyword=${encodeURIComponent(word)}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json'
-                    }
-                }
+                `${JISHO_API_URL}?keyword=${encodeURIComponent(word)}`
             );
 
             if (!response.ok) {
-                throw new Error(`Jisho request failed with status ${response.status}`);
+                throw new Error(`Jisho lookup failed with status ${response.status}`);
             }
 
             return await response.json();
         } catch (error) {
             lastError = error;
 
-            if (attempt < MAX_LOOKUP_ATTEMPTS) {
-                await delay(400 * attempt);
+            if (attempt < LOOKUP_RETRY_COUNT) {
+                await wait(300 * (attempt + 1));
             }
         }
     }
 
-    throw lastError || new Error('Lookup failed.');
+    throw lastError || new Error('Jisho lookup failed.');
 }
 
-async function saveVocabulary({ text, sentence, reading, wordInfo, sender }) {
-    const surface = cleanText(wordInfo?.surface || text);
+async function saveVocabEntry(payload) {
+    const entry = createFlashcardEntry(payload);
 
-    if (!surface) {
-        return { success: false, error: 'No vocabulary text provided.' };
+    if (!entry.surface) {
+        throw new Error('Cannot save flashcard without a word.');
     }
 
-    const storedData = await storageGet({ [VOCAB_STORAGE_KEY]: [] });
-    const existingList = Array.isArray(storedData[VOCAB_STORAGE_KEY])
-        ? storedData[VOCAB_STORAGE_KEY]
+    const data = await storageLocalGet({ [VOCAB_STORAGE_KEY]: [] });
+    const currentList = Array.isArray(data[VOCAB_STORAGE_KEY])
+        ? data[VOCAB_STORAGE_KEY].map(normaliseStoredFlashcardEntry).filter(item => item.surface)
         : [];
 
-    const normalisedExistingList = existingList.map(normaliseFlashcardEntry);
-
-    const newEntry = createFlashcardEntry({
-        surface,
-        reading,
-        sentence,
-        wordInfo,
-        sender
-    });
-
-    const existingIndex = normalisedExistingList.findIndex(entry =>
-        isSameVocabulary(entry, newEntry)
+    const duplicateIndex = currentList.findIndex(existing =>
+        isSameFlashcard(existing, entry)
     );
 
-    let savedEntry = newEntry;
-    let wasDuplicate = false;
+    if (duplicateIndex >= 0) {
+        const existing = currentList[duplicateIndex];
 
-    if (existingIndex >= 0) {
-        savedEntry = mergeFlashcardEntries(normalisedExistingList[existingIndex], newEntry);
-        normalisedExistingList[existingIndex] = savedEntry;
-        wasDuplicate = true;
-    } else {
-        normalisedExistingList.push(newEntry);
+        currentList[duplicateIndex] = {
+            ...existing,
+            ...entry,
+            id: existing.id,
+            savedAt: existing.savedAt || entry.savedAt,
+            updatedAt: Date.now()
+        };
+
+        await storageLocalSet({ [VOCAB_STORAGE_KEY]: currentList });
+
+        return {
+            duplicate: true,
+            entry: currentList[duplicateIndex]
+        };
     }
 
-    await storageSet({ [VOCAB_STORAGE_KEY]: normalisedExistingList });
+    const nextList = [...currentList, entry];
 
-    broadcastVocabUpdated(savedEntry);
+    await storageLocalSet({ [VOCAB_STORAGE_KEY]: nextList });
 
     return {
-        success: true,
-        duplicate: wasDuplicate,
-        entry: savedEntry
+        duplicate: false,
+        entry
     };
 }
 
-function createFlashcardEntry({ surface, reading, sentence, wordInfo, sender }) {
-    const now = Date.now();
-    const meanings = normaliseMeanings(wordInfo?.meanings || []);
-    const jlptLevel = extractJlptLevel(wordInfo?.jlpt || []);
-    const baseForm = cleanText(wordInfo?.baseForm || surface);
+function createFlashcardEntry(payload) {
+    const wordInfo = payload.wordInfo || {};
 
-    const resolvedReading = cleanText(wordInfo?.reading || reading || '');
-    const resolvedSentence = cleanText(wordInfo?.sentence || sentence || '');
+    const surface = cleanText(
+        payload.surface ||
+        wordInfo.surface ||
+        wordInfo.word ||
+        payload.word ||
+        ''
+    );
 
-    const pageUrl = sender?.tab?.url || '';
-    const pageTitle = sender?.tab?.title || '';
+    const baseForm = cleanText(
+        payload.baseForm ||
+        wordInfo.baseForm ||
+        wordInfo.basicForm ||
+        surface
+    );
+
+    const reading = cleanText(
+        payload.reading ||
+        wordInfo.reading ||
+        ''
+    );
+
+    const meanings = normaliseMeanings(
+        payload.meanings ||
+        wordInfo.meanings ||
+        []
+    );
+
+    const jlptLevel = extractJlptLevel(
+        payload.jlptLevel ||
+        wordInfo.jlptLevel ||
+        wordInfo.jlpt ||
+        []
+    );
+
+    const sentence = cleanText(
+        payload.sentence ||
+        wordInfo.sentence ||
+        ''
+    );
+
+    const savedAt = Date.now();
 
     const entry = {
         id: createFlashcardId({
             surface,
-            reading: resolvedReading,
-            savedAt: now
+            baseForm,
+            reading,
+            savedAt
         }),
         surface,
         word: surface,
         baseForm,
-        reading: resolvedReading,
+        reading,
         meanings,
         jlptLevel,
-        sentence: resolvedSentence,
-        pageUrl,
-        pageTitle,
-        source: wordInfo ? 'jisho' : 'manual',
-        savedAt: now,
-        updatedAt: now
+        sentence,
+        pageUrl: payload.pageUrl || '',
+        pageTitle: payload.pageTitle || '',
+        source: payload.source || 'unknown',
+        savedAt,
+        updatedAt: savedAt
     };
 
-    entry.wordInfo = createLegacyWordInfo(entry);
+    entry.wordInfo = {
+        word: entry.surface,
+        surface: entry.surface,
+        baseForm: entry.baseForm,
+        reading: entry.reading,
+        meanings: entry.meanings,
+        jlpt: entry.jlptLevel ? [`jlpt-${entry.jlptLevel}`] : [],
+        sentence: entry.sentence
+    };
 
     return entry;
 }
 
-function normaliseFlashcardEntry(entry) {
+function normaliseStoredFlashcardEntry(entry) {
     const surface = cleanText(entry.surface || entry.word || entry.text || '');
     const reading = cleanText(entry.reading || entry.wordInfo?.reading || '');
     const savedAt = Number(entry.savedAt || entry.timestamp || Date.now());
     const updatedAt = Number(entry.updatedAt || savedAt);
-
     const meanings = normaliseMeanings(entry.meanings || entry.wordInfo?.meanings || []);
     const jlptLevel = extractJlptLevel(
-        entry.jlptLevel || entry.jlpt || entry.wordInfo?.jlpt || []
+        entry.jlptLevel ||
+        entry.jlpt ||
+        entry.wordInfo?.jlpt ||
+        []
     );
 
-    const baseForm = cleanText(entry.baseForm || entry.basicForm || entry.wordInfo?.baseForm || surface);
-
-    const normalisedEntry = {
-        id: entry.id || createFlashcardId({ surface, reading, savedAt }),
+    const normalised = {
+        id: entry.id || createFlashcardId({
+            surface,
+            baseForm: entry.baseForm || entry.basicForm || surface,
+            reading,
+            savedAt
+        }),
         surface,
         word: surface,
-        baseForm,
+        baseForm: cleanText(entry.baseForm || entry.basicForm || surface),
         reading,
         meanings,
         jlptLevel,
@@ -216,55 +298,65 @@ function normaliseFlashcardEntry(entry) {
         updatedAt
     };
 
-    normalisedEntry.wordInfo = createLegacyWordInfo(normalisedEntry);
-
-    return normalisedEntry;
-}
-
-function mergeFlashcardEntries(existingEntry, newEntry) {
-    const merged = {
-        ...existingEntry,
-        baseForm: existingEntry.baseForm || newEntry.baseForm,
-        reading: existingEntry.reading || newEntry.reading,
-        meanings: existingEntry.meanings?.length ? existingEntry.meanings : newEntry.meanings,
-        jlptLevel: existingEntry.jlptLevel || newEntry.jlptLevel,
-        sentence: existingEntry.sentence || newEntry.sentence,
-        pageUrl: existingEntry.pageUrl || newEntry.pageUrl,
-        pageTitle: existingEntry.pageTitle || newEntry.pageTitle,
-        source: existingEntry.source === 'legacy' ? newEntry.source : existingEntry.source,
-        updatedAt: Date.now()
+    normalised.wordInfo = {
+        word: normalised.surface,
+        surface: normalised.surface,
+        baseForm: normalised.baseForm,
+        reading: normalised.reading,
+        meanings: normalised.meanings,
+        jlpt: normalised.jlptLevel ? [`jlpt-${normalised.jlptLevel}`] : [],
+        sentence: normalised.sentence
     };
 
-    merged.wordInfo = createLegacyWordInfo(merged);
-
-    return merged;
+    return normalised;
 }
 
-function isSameVocabulary(a, b) {
-    const sameSurface = cleanText(a.surface) === cleanText(b.surface);
-    const sameBaseForm = cleanText(a.baseForm) === cleanText(b.baseForm);
-    const aReading = cleanText(a.reading);
-    const bReading = cleanText(b.reading);
+function normaliseJishoResult(result, fallbackWord = '') {
+    if (!result) {
+        const surface = cleanText(fallbackWord);
 
-    if (!sameSurface && !sameBaseForm) {
-        return false;
+        return {
+            word: surface,
+            surface,
+            baseForm: surface,
+            reading: '',
+            meanings: [],
+            jlpt: [],
+            jlptLevel: ''
+        };
     }
 
-    if (!aReading || !bReading) {
-        return true;
-    }
+    const japanese = Array.isArray(result.japanese) ? result.japanese : [];
+    const primaryJapanese = japanese[0] || {};
 
-    return aReading === bReading;
-}
+    const surface = cleanText(
+        primaryJapanese.word ||
+        primaryJapanese.reading ||
+        fallbackWord
+    );
 
-function createLegacyWordInfo(entry) {
+    const reading = cleanText(primaryJapanese.reading || '');
+
+    const meanings = Array.isArray(result.senses)
+        ? result.senses.map(sense => ({
+            definitions: normaliseStringArray(sense.english_definitions),
+            partOfSpeech: normaliseStringArray(sense.parts_of_speech),
+            tags: normaliseStringArray(sense.tags),
+            info: normaliseStringArray(sense.info)
+        }))
+        : [];
+
+    const jlpt = normaliseStringArray(result.jlpt);
+    const jlptLevel = extractJlptLevel(jlpt);
+
     return {
-        surface: entry.surface || '',
-        baseForm: entry.baseForm || entry.surface || '',
-        reading: entry.reading || '',
-        meanings: normaliseMeanings(entry.meanings || []),
-        jlpt: entry.jlptLevel ? [`jlpt-${entry.jlptLevel}`] : [],
-        sentence: entry.sentence || ''
+        word: surface,
+        surface,
+        baseForm: surface,
+        reading,
+        meanings,
+        jlpt,
+        jlptLevel
     };
 }
 
@@ -274,8 +366,15 @@ function normaliseMeanings(meanings) {
     }
 
     return meanings.map(meaning => ({
-        definitions: normaliseStringArray(meaning.definitions),
-        partOfSpeech: normaliseStringArray(meaning.partOfSpeech || meaning.partsOfSpeech),
+        definitions: normaliseStringArray(
+            meaning.definitions ||
+            meaning.english_definitions
+        ),
+        partOfSpeech: normaliseStringArray(
+            meaning.partOfSpeech ||
+            meaning.partsOfSpeech ||
+            meaning.parts_of_speech
+        ),
         tags: normaliseStringArray(meaning.tags),
         info: normaliseStringArray(meaning.info)
     }));
@@ -284,12 +383,26 @@ function normaliseMeanings(meanings) {
 function normaliseStringArray(value) {
     if (Array.isArray(value)) {
         return value
-            .map(item => cleanText(item))
+            .map(cleanText)
             .filter(Boolean);
     }
 
     const cleaned = cleanText(value);
     return cleaned ? [cleaned] : [];
+}
+
+function isSameFlashcard(a, b) {
+    return cleanText(a.surface) === cleanText(b.surface) &&
+        cleanText(a.reading) === cleanText(b.reading);
+}
+
+function createFlashcardId({ surface, baseForm, reading, savedAt }) {
+    return [
+        cleanText(surface),
+        cleanText(baseForm),
+        cleanText(reading),
+        Number(savedAt) || Date.now()
+    ].join('|');
 }
 
 function extractJlptLevel(value) {
@@ -307,42 +420,35 @@ function extractJlptLevel(value) {
     return '';
 }
 
-function createFlashcardId({ surface, reading, savedAt }) {
-    return [
-        cleanText(surface),
-        cleanText(reading),
-        Number(savedAt) || Date.now()
-    ].join('|');
-}
-
-function cleanText(value) {
-    return String(value || '').trim();
-}
-
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function storageGet(defaults) {
-    return new Promise(resolve => {
-        chrome.storage.local.get(defaults, resolve);
-    });
-}
-
-function storageSet(data) {
-    return new Promise(resolve => {
-        chrome.storage.local.set(data, resolve);
-    });
-}
-
-function broadcastVocabUpdated(entry) {
+function broadcastVocabUpdated() {
     chrome.runtime.sendMessage(
         {
-            action: 'vocabUpdated',
-            entry
+            action: 'vocabUpdated'
         },
         () => {
             void chrome.runtime.lastError;
         }
     );
+}
+
+function storageLocalGet(defaults) {
+    return new Promise(resolve => {
+        chrome.storage.local.get(defaults, resolve);
+    });
+}
+
+function storageLocalSet(data) {
+    return new Promise(resolve => {
+        chrome.storage.local.set(data, resolve);
+    });
+}
+
+function wait(ms) {
+    return new Promise(resolve => {
+        setTimeout(resolve, ms);
+    });
+}
+
+function cleanText(value) {
+    return String(value || '').trim();
 }

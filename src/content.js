@@ -10,7 +10,8 @@ import {
     DEFAULT_READING_HELP_MODE,
     READING_HELP_MODE_STORAGE_KEY,
     applyReadingHelpModeToDocument,
-    getReadingHelpMode
+    getReadingHelpMode,
+    getJlptDatasetCoverageForDocument
 } from './modules/jlpt/filter';
 import { enrichJlptLevelsForDocument } from './modules/jlpt/enricher';
 
@@ -116,7 +117,7 @@ function setAllFuriganaVisibility(visible) {
     const furiganaElements = document.querySelectorAll('.yomisaver-ruby rt');
 
     furiganaElements.forEach(rt => {
-        rt.style.display = visible ? 'block' : 'none';
+        rt.style.display = visible ? '' : 'none';
     });
 
     document.documentElement.dataset.yomisaverFurigana = visible ? 'visible' : 'hidden';
@@ -229,26 +230,43 @@ function addStorageChangeListener() {
     });
 }
 
-chrome.runtime.onMessage.addListener(message => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || !message.action) {
-        return;
+        return false;
     }
 
     if (message.action === 'updatePopupSize') {
         updatePopupSize(message.size);
+        return false;
     }
 
     if (message.action === 'updateFontSize') {
         updateFontSize(message.size);
+        return false;
     }
 
     if (message.action === 'toggleFurigana') {
         setFuriganaEnabled(message.visible);
+        return false;
     }
 
     if (message.action === 'updateReadingHelpMode') {
         setReadingHelpMode(message.mode);
+        return false;
     }
+
+    if (message.action === 'getJlptCoverage') {
+        sendResponse({
+            success: true,
+            coverage: getJlptDatasetCoverageForDocument(),
+            mode: currentReadingHelpMode,
+            furiganaVisible
+        });
+
+        return true;
+    }
+
+    return false;
 });
 
 if (document.readyState === 'loading') {

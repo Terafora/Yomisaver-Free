@@ -171,6 +171,7 @@ function initJlptFilter() {
             }
         }
     );
+        updateJlptCoverageStatus();
 }
 
 function createReadingHelpOption(modeKey, mode) {
@@ -218,6 +219,8 @@ function createReadingHelpOption(modeKey, mode) {
                     action: 'toggleFurigana',
                     visible: modeKey !== 'none'
                 });
+                
+                setTimeout(updateJlptCoverageStatus, 500);
             }
         );
     });
@@ -261,10 +264,30 @@ function setFuriganaButtonText(button, furiganaVisible) {
 
 function initFlashcards() {
     const exportButton = document.getElementById('export-flashcards');
+    const selectAllButton = document.getElementById('select-all-flashcards');
+    const clearSelectedButton = document.getElementById('clear-selected-flashcards');
 
     if (exportButton) {
         exportButton.addEventListener('click', exportFlashcards);
     }
+
+    if (selectAllButton) {
+        selectAllButton.addEventListener('click', () => {
+            setAllFlashcardSelection(true);
+        });
+    }
+
+    if (clearSelectedButton) {
+        clearSelectedButton.addEventListener('click', () => {
+            setAllFlashcardSelection(false);
+        });
+    }
+
+    document.addEventListener('change', event => {
+        if (event.target?.classList?.contains('select-flashcard')) {
+            updateSelectedFlashcardCount();
+        }
+    });
 
     loadFlashcards();
 }
@@ -281,8 +304,9 @@ async function loadFlashcards() {
     clearElement(vocabContainer);
 
     if (!vocabList.length) {
-        const emptyMessage = createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!');
+        const emptyMessage = createElement('p', 'yomisaver', 'No flashcards saved yet!');
         vocabContainer.appendChild(emptyMessage);
+        updateSelectedFlashcardCount();
         return;
     }
 
@@ -291,6 +315,7 @@ async function loadFlashcards() {
     displayList.forEach(entry => {
         vocabContainer.appendChild(createFlashcardElement(entry));
     });
+    updateSelectedFlashcardCount();
 }
 
 function createFlashcardElement(entry) {
@@ -370,6 +395,7 @@ async function deleteFlashcard(id) {
         vocabContainer.appendChild(
             createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!')
         );
+        updateSelectedFlashcardCount();
     }
 }
 
@@ -410,6 +436,30 @@ async function exportFlashcards() {
     document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
+}
+
+function setAllFlashcardSelection(selected) {
+    const checkboxes = document.querySelectorAll('.select-flashcard');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selected;
+    });
+
+    updateSelectedFlashcardCount();
+}
+
+function updateSelectedFlashcardCount() {
+    const countElement = document.getElementById('selected-flashcard-count');
+
+    if (!countElement) {
+        return;
+    }
+
+    const selectedCount = document.querySelectorAll('.select-flashcard:checked').length;
+
+    countElement.textContent = selectedCount === 1
+        ? '1 selected'
+        : `${selectedCount} selected`;
 }
 
 function createAnkiExportRow(entry) {
@@ -656,6 +706,61 @@ function storageGet(defaults) {
 function storageSet(data) {
     return new Promise(resolve => {
         chrome.storage.local.set(data, resolve);
+    });
+}
+
+function updateJlptCoverageStatus() {
+    const coverageElement = document.getElementById('jlpt-coverage');
+
+    if (!coverageElement) {
+        return;
+    }
+
+    coverageElement.textContent = 'Checking JLPT coverage for this page…';
+
+    sendMessageToActiveTabWithResponse(
+        {
+            action: 'getJlptCoverage'
+        },
+        response => {
+            if (!response?.success || !response.coverage) {
+                coverageElement.textContent = 'JLPT coverage is available after YomiSaver processes a Japanese page.';
+                return;
+            }
+
+            const coverage = response.coverage;
+            const percentage = coverage.total
+                ? Math.round(coverage.ratio * 100)
+                : 0;
+
+            if (!coverage.total) {
+                coverageElement.textContent = 'No YomiSaver furigana words detected on this page yet.';
+                return;
+            }
+
+            coverageElement.textContent =
+                `JLPT coverage on this page: ${coverage.known} / ${coverage.total} words recognised (${percentage}%).`;
+        }
+    );
+}
+
+function sendMessageToActiveTabWithResponse(message, callback) {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        const activeTab = tabs[0];
+
+        if (!activeTab?.id) {
+            callback(null);
+            return;
+        }
+
+        chrome.tabs.sendMessage(activeTab.id, message, response => {
+            if (chrome.runtime.lastError) {
+                callback(null);
+                return;
+            }
+
+            callback(response);
+        });
     });
 }
 

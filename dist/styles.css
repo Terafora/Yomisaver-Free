@@ -1,29 +1,32 @@
 :root {
     --popup-scale: 1;
     --font-scale: 1;
+    --ys-red: #ff0000;
+    --ys-blue: #2c4c9c;
+    --ys-blue-hover: #3a5dbd;
+    --ys-text: #333;
+    --ys-muted: #666;
+    --ys-border: #eee;
 }
 
 /* YomiSaver injected furigana */
+.yomisaver-text {
+    line-height: 2.05;
+}
+
 .yomisaver-ruby {
-    display: inline-block;
+    ruby-position: over;
     text-align: center;
-    line-height: normal;
-    position: relative;
-    margin: 0 0.05em;
+    line-height: 1.15;
+    margin: 0 0.03em;
 }
 
 .yomisaver-ruby rt {
-    display: block;
-    position: absolute;
-    bottom: 100%;
-    left: 0;
-    right: 0;
-    font-size: 0.5em;
+    font-size: 0.55em;
     color: #555;
     text-align: center;
     white-space: nowrap;
     line-height: 1;
-    margin-bottom: 0.2em;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -62,6 +65,7 @@
     transform: scale(var(--popup-scale));
     transform-origin: top left;
     font-size: calc(14px * var(--font-scale));
+    line-height: 1.4;
 }
 
 .yomisaver-popup.hiding {
@@ -92,7 +96,7 @@
 }
 
 .yomisaver-popup .header {
-    background-color: #ff0000;
+    background-color: var(--ys-red);
     color: white;
     padding: 8px;
     margin: -10px -10px 10px -10px;
@@ -114,7 +118,7 @@
 .yomisaver-popup .meaning-group {
     margin-bottom: 8px;
     padding-bottom: 8px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--ys-border);
     max-width: 100%;
 }
 
@@ -128,7 +132,7 @@
 }
 
 .yomisaver-popup .pos {
-    color: #2c4c9c;
+    color: var(--ys-blue);
     font-size: 0.85em;
     font-style: italic;
     margin-right: 5px;
@@ -160,7 +164,7 @@
 }
 
 .save-vocab-btn {
-    background-color: #2c4c9c;
+    background-color: var(--ys-blue);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -173,7 +177,7 @@
 }
 
 .save-vocab-btn:hover {
-    background-color: #3a5dbd;
+    background-color: var(--ys-blue-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -286,7 +290,7 @@
 .yomisaver-tab-container {
     display: flex;
     border-bottom: 1px solid #ddd;
-    background: #ff0000;
+    background: var(--ys-red);
     padding: 5px 5px 0;
     border-radius: 4px 4px 0 0;
     box-shadow: none;
@@ -311,7 +315,7 @@
 
 .yomisaver-tab.active {
     background: white;
-    color: #2c4c9c;
+    color: var(--ys-blue);
 }
 
 .yomisaver-vocab-entry {
@@ -319,7 +323,7 @@
     border-radius: 8px;
     padding: 15px;
     margin-bottom: 15px;
-    border: 1px solid #eee;
+    border: 1px solid var(--ys-border);
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.2s ease;
     font-size: 0.9em;
@@ -335,6 +339,7 @@
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 10px;
+    gap: 8px;
 }
 
 .word-info {
@@ -343,19 +348,19 @@
 
 .word-info h3,
 .yomisaver-vocab-entry h3 {
-    color: #2c4c9c;
+    color: var(--ys-blue);
     margin: 0 0 5px;
     font-size: 1.2em;
 }
 
 .meanings-container {
     margin: 10px 0;
-    color: #333;
+    color: var(--ys-text);
 }
 
 .meaning {
     padding: 5px 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--ys-border);
 }
 
 .meaning:last-child {
@@ -374,12 +379,12 @@
 
 .delete-vocab:hover {
     background: #fee;
-    color: #ff0000;
+    color: var(--ys-red);
 }
 
 .yomisaver-vocab-entry .jlpt {
     display: inline-block;
-    background: #ff0000;
+    background: var(--ys-red);
     color: white;
     padding: 2px 8px;
     border-radius: 3px;
@@ -398,7 +403,7 @@
 }
 
 .yomisaver-settings-group h3 {
-    color: #333;
+    color: var(--ys-text);
     margin-bottom: 10px;
 }
 
@@ -417,7 +422,7 @@
     display: block;
     width: 100%;
     padding: 12px;
-    background: linear-gradient(45deg, #2c4c9c, #3a5dbd);
+    background: linear-gradient(45deg, var(--ys-blue), var(--ys-blue-hover));
     color: white;
     border: none;
     border-radius: 4px;
@@ -435,7 +440,7 @@
 #toggleFurigana,
 #showAcknowledgements,
 #backToSettings {
-    background-color: #2c4c9c;
+    background-color: var(--ys-blue);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -458,7 +463,7 @@
 #toggleFurigana:hover,
 #showAcknowledgements:hover,
 #backToSettings:hover {
-    background-color: #3a5dbd;
+    background-color: var(--ys-blue-hover);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -488,7 +493,7 @@
     gap: 10px;
     align-items: flex-start;
     padding: 10px;
-    border: 1px solid #eee;
+    border: 1px solid var(--ys-border);
     border-radius: 8px;
     cursor: pointer;
     background: #fff;
@@ -514,4 +519,88 @@
     color: #666;
     font-size: 0.85em;
     line-height: 1.35;
+}
+
+/* Dictionary popup spacing polish */
+.yomisaver-popup {
+    padding-bottom: 8px;
+}
+
+.yomisaver-popup .meanings-container {
+    padding-bottom: 4px;
+}
+
+.yomisaver-popup .save-vocab-btn {
+    margin: 8px 0 0;
+    display: block;
+}
+
+/* Dictionary popup compact layout */
+.yomisaver-popup {
+    box-sizing: border-box;
+    height: auto;
+    padding-bottom: 10px;
+}
+
+.yomisaver-popup-body {
+    margin: 0;
+    padding: 0;
+}
+
+.yomisaver-popup-footer {
+    margin: 0;
+    padding: 0 8px 0;
+}
+
+.yomisaver-popup-footer .save-vocab-btn {
+    margin: 6px 0 0;
+}
+
+.yomisaver-popup-status {
+    padding: 10px 8px;
+    color: #666;
+    font-size: 0.95em;
+}
+
+/* JLPT coverage note */
+.yomisaver-coverage-card {
+    background: #f8f9ff;
+    border: 1px solid #d9def5;
+    color: #444;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 0 0 12px;
+    font-size: 0.88em;
+    line-height: 1.35;
+}
+
+/* Flashcard export toolbar */
+.yomisaver-flashcard-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.yomisaver-flashcard-toolbar button {
+    background: #f8f9ff;
+    border: 1px solid #d9def5;
+    color: var(--ys-blue);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.yomisaver-flashcard-toolbar button:hover {
+    background: #eef2ff;
+    border-color: #bfc8ef;
+}
+
+#selected-flashcard-count {
+    color: #666;
+    font-size: 0.85em;
+    margin-left: auto;
 }

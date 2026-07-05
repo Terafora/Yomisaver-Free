@@ -143,7 +143,8 @@ function createRubyElement(token) {
     rt.textContent = token.reading;
 
     const visible = shouldShowFuriganaForToken(token, currentReadingHelpMode);
-    rt.style.display = visible ? 'block' : 'none';
+
+    rt.style.display = visible ? '' : 'none';
     ruby.dataset.furiganaVisible = visible ? 'true' : 'false';
 
     ruby.appendChild(rt);

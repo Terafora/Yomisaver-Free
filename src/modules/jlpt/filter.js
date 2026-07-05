@@ -163,17 +163,11 @@ export function applyReadingHelpModeToDocument(mode = DEFAULT_READING_HELP_MODE)
 
         const visible = shouldShowFuriganaForElement(ruby, resolvedMode);
 
-        rt.style.display = visible ? 'block' : 'none';
+        rt.style.display = visible ? '' : 'none';
         ruby.dataset.furiganaVisible = visible ? 'true' : 'false';
 
-        const label = [
-            ruby.dataset.surface || getRubySurfaceText(ruby),
-            level ? `JLPT ${level.toUpperCase()}` : 'JLPT unknown',
-            `mode: ${resolvedMode}`,
-            visible ? 'furigana visible' : 'furigana hidden'
-        ].join(' | ');
-
-        ruby.title = label;
+        // Remove temporary diagnostic tooltip from the previous debugging phase.
+        ruby.removeAttribute('title');
     });
 
     document.documentElement.dataset.yomisaverReadingHelpMode = resolvedMode;
@@ -324,14 +318,4 @@ function katakanaToHiragana(value) {
     return String(value || '').replace(/[\u30A1-\u30F6]/g, char =>
         String.fromCharCode(char.charCodeAt(0) - 0x60)
     );
-}
-
-function getRubySurfaceText(ruby) {
-    const clone = ruby.cloneNode(true);
-
-    clone.querySelectorAll('rt, rp').forEach(element => {
-        element.remove();
-    });
-
-    return clone.textContent.trim();
 }

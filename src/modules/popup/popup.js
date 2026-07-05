@@ -1,197 +1,346 @@
 import { popupManager } from './popupUtils';
 import { getSentenceContext } from '../utils/dom';
 
-function createElement(tagName, className, textContent) {
-    const element = document.createElement(tagName);
+export function createPopup(wordInfo, rect, anchorElement = null) {
+    const popup = document.createElement('div');
+    popup.className = 'yomisaver-popup fade-in';
 
-    if (className) {
-        element.className = className;
+    const closeButton = document.createElement('button');
+    closeButton.className = 'close-button';
+    closeButton.type = 'button';
+    closeButton.textContent = '×';
+    closeButton.setAttribute('aria-label', 'Close dictionary popup');
+    closeButton.addEventListener('click', event => {
+        event.stopPropagation();
+        popupManager.removeImmediately();
+    });
+
+    popup.appendChild(closeButton);
+    popup.appendChild(createHeader(wordInfo));
+
+    const body = document.createElement('div');
+    body.className = 'yomisaver-popup-body';
+
+    if (wordInfo?.isLoading) {
+        body.appendChild(createStatusMessage(wordInfo.statusText || 'Looking up…'));
+    } else if (wordInfo?.statusText) {
+        body.appendChild(createStatusMessage(wordInfo.statusText));
+    } else {
+        body.appendChild(createMeaningsContainer(wordInfo));
     }
 
-    if (textContent !== undefined && textContent !== null) {
-        element.textContent = textContent;
-    }
+    popup.appendChild(body);
 
-    return element;
+    const footer = document.createElement('div');
+    footer.className = 'yomisaver-popup-footer';
+
+    const saveButton = createSaveButton(wordInfo, anchorElement);
+    footer.appendChild(saveButton);
+
+    popup.appendChild(footer);
+
+    document.body.appendChild(popup);
+    positionPopup(popup, rect);
+
+    return popup;
 }
 
-function normaliseArray(value) {
-    return Array.isArray(value) ? value : [];
+function createHeader(wordInfo) {
+    const header = document.createElement('div');
+    header.className = 'header';
+
+    const word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = getDisplayWord(wordInfo);
+
+    header.appendChild(word);
+
+    if (wordInfo?.reading) {
+        const reading = document.createElement('span');
+        reading.className = 'reading';
+        reading.textContent = wordInfo.reading;
+        header.appendChild(reading);
+    }
+
+    const jlptLevel = getJlptLevel(wordInfo);
+
+    if (jlptLevel) {
+        const jlpt = document.createElement('span');
+        jlpt.className = 'jlpt';
+        jlpt.textContent = formatJlptLevel(jlptLevel);
+        header.appendChild(jlpt);
+    }
+
+    return header;
+}
+
+function createMeaningsContainer(wordInfo) {
+    const container = document.createElement('div');
+    container.className = 'meanings-container';
+
+    const meanings = Array.isArray(wordInfo?.meanings)
+        ? wordInfo.meanings
+        : [];
+
+    if (!meanings.length) {
+        container.appendChild(createStatusMessage('No meanings found.'));
+        return container;
+    }
+
+    meanings.forEach(meaning => {
+        container.appendChild(createMeaningGroup(meaning));
+    });
+
+    return container;
 }
 
 function createMeaningGroup(meaning) {
-    const group = createElement('div', 'meaning-group');
+    const group = document.createElement('div');
+    group.className = 'meaning-group';
 
-    const partOfSpeech = normaliseArray(meaning.partOfSpeech);
-    const tags = normaliseArray(meaning.tags);
-    const info = normaliseArray(meaning.info);
-    const definitions = normaliseArray(meaning.definitions);
+    const meta = document.createElement('div');
+    meta.className = 'meaning-meta';
 
-    const metaContainer = createElement('div', 'meaning-meta');
-
-    if (partOfSpeech.length) {
-        metaContainer.appendChild(createElement('span', 'pos', partOfSpeech.join(', ')));
-    }
-
-    if (tags.length) {
-        metaContainer.appendChild(createElement('span', 'tags', tags.join(', ')));
-    }
-
-    if (info.length) {
-        metaContainer.appendChild(createElement('span', 'info', info.join(', ')));
-    }
-
-    if (metaContainer.childNodes.length) {
-        group.appendChild(metaContainer);
-    }
-
-    const definitionsElement = createElement(
-        'div',
-        'definitions',
-        definitions.length ? definitions.join('; ') : 'No definition available.'
+    const partOfSpeech = normaliseStringArray(
+        meaning.partOfSpeech || meaning.partsOfSpeech
     );
 
-    group.appendChild(definitionsElement);
+    if (partOfSpeech.length) {
+        const pos = document.createElement('span');
+        pos.className = 'pos';
+        pos.textContent = partOfSpeech.join(', ');
+        meta.appendChild(pos);
+    }
+
+    const tags = normaliseStringArray(meaning.tags);
+
+    if (tags.length) {
+        const tagSpan = document.createElement('span');
+        tagSpan.className = 'tags';
+        tagSpan.textContent = tags.join(', ');
+        meta.appendChild(tagSpan);
+    }
+
+    const info = normaliseStringArray(meaning.info);
+
+    if (info.length) {
+        const infoSpan = document.createElement('span');
+        infoSpan.className = 'info';
+        infoSpan.textContent = info.join(', ');
+        meta.appendChild(infoSpan);
+    }
+
+    if (meta.childNodes.length) {
+        group.appendChild(meta);
+    }
+
+    const definitions = normaliseStringArray(meaning.definitions);
+
+    if (definitions.length) {
+        const definitionList = document.createElement('div');
+        definitionList.className = 'definitions';
+        definitionList.textContent = definitions.join('; ');
+        group.appendChild(definitionList);
+    }
 
     return group;
 }
 
+function createStatusMessage(message) {
+    const status = document.createElement('div');
+    status.className = 'yomisaver-popup-status';
+    status.textContent = message;
+    return status;
+}
+
+function createSaveButton(wordInfo, anchorElement) {
+    const button = document.createElement('button');
+    button.className = 'save-vocab-btn';
+    button.type = 'button';
+
+    if (wordInfo?.isLoading) {
+        button.textContent = 'Looking up…';
+        button.disabled = true;
+        return button;
+    }
+
+    button.textContent = 'Save to Flashcards';
+
+    button.addEventListener('click', event => {
+        event.stopPropagation();
+
+        const entry = createFlashcardPayload(wordInfo, anchorElement);
+
+        button.disabled = true;
+        button.textContent = 'Saving…';
+
+        chrome.runtime.sendMessage(
+            {
+                action: 'saveVocab',
+                wordInfo: entry.wordInfo,
+                surface: entry.surface,
+                baseForm: entry.baseForm,
+                reading: entry.reading,
+                meanings: entry.meanings,
+                jlptLevel: entry.jlptLevel,
+                sentence: entry.sentence,
+                pageUrl: window.location.href,
+                pageTitle: document.title,
+                source: 'hover-popup'
+            },
+            response => {
+                if (chrome.runtime.lastError) {
+                    button.disabled = false;
+                    button.textContent = 'Save failed';
+                    console.warn('YomiSaver save failed:', chrome.runtime.lastError.message);
+                    return;
+                }
+
+                const savedSuccessfully =
+                    response?.success === true ||
+                    response?.status === 'success' ||
+                    response?.saved === true ||
+                    response?.ok === true;
+
+                if (savedSuccessfully) {
+                    button.textContent = response?.duplicate ? 'Already Saved' : 'Saved';
+                    button.classList.add('saved');
+                    return;
+                }
+
+                button.disabled = false;
+                button.textContent = 'Save failed';
+
+                console.warn('YomiSaver save returned an unsuccessful response:', response);
+            }
+        );
+    });
+
+    return button;
+}
+
+function createFlashcardPayload(wordInfo, anchorElement) {
+    const surface = cleanText(wordInfo?.surface || wordInfo?.word || '');
+    const baseForm = cleanText(wordInfo?.baseForm || wordInfo?.basicForm || surface);
+    const reading = cleanText(wordInfo?.reading || '');
+    const meanings = Array.isArray(wordInfo?.meanings) ? wordInfo.meanings : [];
+    const jlptLevel = getJlptLevel(wordInfo);
+    const sentence = cleanText(
+        wordInfo?.sentence ||
+        getSentenceContext(surface, anchorElement)
+    );
+
+    return {
+        surface,
+        baseForm,
+        reading,
+        meanings,
+        jlptLevel,
+        sentence,
+        wordInfo: {
+            word: surface,
+            surface,
+            baseForm,
+            reading,
+            meanings,
+            jlpt: jlptLevel ? [`jlpt-${jlptLevel}`] : [],
+            sentence
+        }
+    };
+}
+
 function positionPopup(popup, rect) {
-    const gap = 10;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const gap = 8;
+    const viewportPadding = 10;
+
+    popup.style.left = '0px';
+    popup.style.top = '0px';
+    popup.style.maxHeight = '';
+    popup.style.height = 'auto';
+
     const popupRect = popup.getBoundingClientRect();
 
     let left = rect.left;
     let top = rect.bottom + gap;
 
-    const wouldOverflowBottom = top + popupRect.height > viewportHeight - gap;
+    if (left + popupRect.width > window.innerWidth - viewportPadding) {
+        left = window.innerWidth - popupRect.width - viewportPadding;
+    }
 
-    if (wouldOverflowBottom) {
+    if (left < viewportPadding) {
+        left = viewportPadding;
+    }
+
+    const spaceBelow = window.innerHeight - rect.bottom - gap - viewportPadding;
+    const spaceAbove = rect.top - gap - viewportPadding;
+
+    if (popupRect.height > spaceBelow && spaceAbove > spaceBelow) {
         top = rect.top - popupRect.height - gap;
     }
 
-    if (left + popupRect.width > viewportWidth - gap) {
-        left = viewportWidth - popupRect.width - gap;
+    if (top < viewportPadding) {
+        top = viewportPadding;
     }
 
-    if (left < gap) {
-        left = gap;
-    }
+    const availableHeight = Math.max(
+        160,
+        window.innerHeight - top - viewportPadding
+    );
 
-    if (top < gap) {
-        top = gap;
-    }
-
-    if (top + popupRect.height > viewportHeight - gap) {
-        top = Math.max(gap, viewportHeight - popupRect.height - gap);
-    }
-
-    popup.style.top = `${top}px`;
-    popup.style.left = `${left}px`;
+    popup.style.left = `${Math.round(left)}px`;
+    popup.style.top = `${Math.round(top)}px`;
+    popup.style.maxHeight = `${Math.round(availableHeight)}px`;
 }
 
-export function createPopup(wordInfo, rect, anchorElement = null) {
-    const popup = createElement('div', 'yomisaver-popup fade-in');
+function getDisplayWord(wordInfo) {
+    return cleanText(
+        wordInfo?.surface ||
+        wordInfo?.word ||
+        wordInfo?.baseForm ||
+        ''
+    );
+}
 
-    const cleanWord = String(wordInfo.surface || wordInfo.word || '').replace(/<[^>]+>/g, '');
-    const baseForm = wordInfo.baseForm || cleanWord;
-    const reading = wordInfo.reading || '';
-    const meanings = normaliseArray(wordInfo.meanings);
-    const jlpt = normaliseArray(wordInfo.jlpt);
-    const sentence = wordInfo.sentence || getSentenceContext(cleanWord, anchorElement);
-    const isLoading = Boolean(wordInfo.isLoading);
-    const statusText = wordInfo.statusText || '';
+function getJlptLevel(wordInfo) {
+    return extractJlptLevel(wordInfo?.jlptLevel || wordInfo?.jlpt || wordInfo?.wordInfo?.jlpt);
+}
 
-    const header = createElement('div', 'header');
+function extractJlptLevel(value) {
+    const values = Array.isArray(value) ? value : [value];
 
-    const closeButton = createElement('button', 'close-button', '×');
-    closeButton.setAttribute('aria-label', 'Close');
+    for (const item of values) {
+        const text = String(item || '').toLowerCase();
+        const match = text.match(/n[1-5]/);
 
-    const wordElement = createElement('div', 'word', cleanWord);
-
-    header.appendChild(closeButton);
-    header.appendChild(wordElement);
-
-    if (reading) {
-        header.appendChild(createElement('div', 'reading', reading));
-    }
-
-    if (baseForm && baseForm !== cleanWord) {
-        header.appendChild(createElement('div', 'reading', `Dictionary form: ${baseForm}`));
-    }
-
-    if (jlpt.length) {
-        header.appendChild(createElement('div', 'jlpt', jlpt.join(', ').toUpperCase()));
-    }
-
-    const meaningsContainer = createElement('div', 'meanings-container');
-
-    if (isLoading) {
-        meaningsContainer.appendChild(
-            createElement('div', 'meaning-group', statusText || 'Looking up…')
-        );
-    } else if (meanings.length) {
-        meanings.forEach(meaning => {
-            meaningsContainer.appendChild(createMeaningGroup(meaning));
-        });
-    } else {
-        meaningsContainer.appendChild(
-            createElement('div', 'meaning-group', statusText || 'No definitions found.')
-        );
-    }
-
-    const saveButton = createElement('button', 'save-vocab-btn', 'Save to Flashcards');
-
-    if (isLoading) {
-        saveButton.disabled = true;
-        saveButton.textContent = 'Looking up…';
-    }
-
-    meaningsContainer.appendChild(saveButton);
-
-    popup.appendChild(header);
-    popup.appendChild(meaningsContainer);
-
-    document.body.appendChild(popup);
-
-    positionPopup(popup, rect);
-
-    closeButton.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        popupManager.removeExistingPopup();
-    });
-
-    saveButton.addEventListener('click', event => {
-        if (isLoading) {
-            return;
+        if (match) {
+            return match[0];
         }
+    }
 
-        const button = event.currentTarget;
+    return '';
+}
 
-        chrome.runtime.sendMessage({
-            action: 'saveVocabulary',
-            text: cleanWord,
-            reading,
-            wordInfo: {
-                surface: cleanWord,
-                baseForm,
-                reading,
-                meanings,
-                jlpt,
-                sentence,
-                partOfSpeech: wordInfo.partOfSpeech || '',
-                partOfSpeechDetails: wordInfo.partOfSpeechDetails || []
-            }
-        });
+function formatJlptLevel(level) {
+    const normalisedLevel = extractJlptLevel(level);
 
-        button.textContent = 'Saved!';
-        button.disabled = true;
-        button.classList.add('saved');
-    });
+    if (!normalisedLevel) {
+        return '';
+    }
 
-    popupManager.setPopup(popup);
+    return `JLPT ${normalisedLevel.toUpperCase()}`;
+}
 
-    return popup;
+function normaliseStringArray(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map(item => cleanText(item))
+            .filter(Boolean);
+    }
+
+    const cleaned = cleanText(value);
+    return cleaned ? [cleaned] : [];
+}
+
+function cleanText(value) {
+    return String(value || '').trim();
 }
