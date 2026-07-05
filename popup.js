@@ -266,6 +266,7 @@ function initFlashcards() {
     const exportButton = document.getElementById('export-flashcards');
     const selectAllButton = document.getElementById('select-all-flashcards');
     const clearSelectedButton = document.getElementById('clear-selected-flashcards');
+    const searchInput = document.getElementById('flashcard-search');
 
     if (exportButton) {
         exportButton.addEventListener('click', exportFlashcards);
@@ -273,13 +274,19 @@ function initFlashcards() {
 
     if (selectAllButton) {
         selectAllButton.addEventListener('click', () => {
-            setAllFlashcardSelection(true);
+            setVisibleFlashcardSelection(true);
         });
     }
 
     if (clearSelectedButton) {
         clearSelectedButton.addEventListener('click', () => {
             setAllFlashcardSelection(false);
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            filterFlashcards();
         });
     }
 
@@ -307,20 +314,24 @@ async function loadFlashcards() {
         const emptyMessage = createElement('p', 'yomisaver', 'No flashcards saved yet!');
         vocabContainer.appendChild(emptyMessage);
         updateSelectedFlashcardCount();
+        updateFlashcardResultCount(0, 0);
         return;
     }
 
     const displayList = [...vocabList].sort((a, b) => b.savedAt - a.savedAt);
 
     displayList.forEach(entry => {
-        vocabContainer.appendChild(createFlashcardElement(entry));
+    vocabContainer.appendChild(createFlashcardElement(entry));
     });
+
+    filterFlashcards();
     updateSelectedFlashcardCount();
-}
+    }
 
 function createFlashcardElement(entry) {
     const entryElement = createElement('div', 'yomisaver-vocab-entry');
     entryElement.dataset.id = entry.id;
+    entryElement.dataset.searchText = createFlashcardSearchText(entry);
 
     const header = createElement('div', 'vocab-header');
 
@@ -395,6 +406,7 @@ async function deleteFlashcard(id) {
         vocabContainer.appendChild(
             createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!')
         );
+        filterFlashcards();
         updateSelectedFlashcardCount();
     }
 }
@@ -436,6 +448,109 @@ async function exportFlashcards() {
     document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
+}
+
+function setVisibleFlashcardSelection(selected) {
+    const visibleCheckboxes = Array.from(document.querySelectorAll('.select-flashcard'))
+        .filter(checkbox => {
+            const entry = checkbox.closest('.yomisaver-vocab-entry');
+            return entry && entry.style.display !== 'none';
+        });
+
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = selected;
+    });
+
+    updateSelectedFlashcardCount();
+}
+
+function filterFlashcards() {
+    const searchInput = document.getElementById('flashcard-search');
+    const query = normaliseSearchText(searchInput?.value || '');
+    const entries = Array.from(document.querySelectorAll('.yomisaver-vocab-entry'));
+
+    let visibleCount = 0;
+
+    entries.forEach(entry => {
+        const searchText = entry.dataset.searchText || '';
+        const visible = !query || searchText.includes(query);
+
+        entry.style.display = visible ? '' : 'none';
+
+        if (!visible) {
+            const checkbox = entry.querySelector('.select-flashcard');
+
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        }
+
+        if (visible) {
+            visibleCount += 1;
+        }
+    });
+
+    updateSelectedFlashcardCount();
+    updateFlashcardResultCount(visibleCount, entries.length);
+}
+
+function updateFlashcardResultCount(visibleCount = null, totalCount = null) {
+    const countElement = document.getElementById('flashcard-result-count');
+
+    if (!countElement) {
+        return;
+    }
+
+    const entries = document.querySelectorAll('.yomisaver-vocab-entry');
+
+    const total = totalCount ?? entries.length;
+    const visible = visibleCount ?? Array.from(entries)
+        .filter(entry => entry.style.display !== 'none')
+        .length;
+
+    if (!total) {
+        countElement.textContent = '0 cards';
+        return;
+    }
+
+    if (visible === total) {
+        countElement.textContent = total === 1
+            ? '1 card'
+            : `${total} cards`;
+        return;
+    }
+
+    countElement.textContent = `${visible} / ${total} shown`;
+}
+
+function createFlashcardSearchText(entry) {
+    const parts = [
+        entry.surface,
+        entry.word,
+        entry.baseForm,
+        entry.reading,
+        entry.jlptLevel,
+        entry.sentence,
+        entry.pageTitle
+    ];
+
+    const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
+
+    meanings.forEach(meaning => {
+        parts.push(...normaliseStringArray(meaning.definitions));
+        parts.push(...normaliseStringArray(meaning.partOfSpeech));
+        parts.push(...normaliseStringArray(meaning.tags));
+        parts.push(...normaliseStringArray(meaning.info));
+    });
+
+    return normaliseSearchText(parts.join(' '));
+}
+
+function normaliseSearchText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 function setAllFlashcardSelection(selected) {
