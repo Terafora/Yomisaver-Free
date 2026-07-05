@@ -1,4 +1,4 @@
-import { JLPT_VOCAB } from './data/jlptVocab';
+import JLPT_VOCAB from './data/jlptVocab.json';
 
 export const READING_HELP_MODE_STORAGE_KEY = 'readingHelpMode';
 

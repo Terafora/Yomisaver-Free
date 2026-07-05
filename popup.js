@@ -80,9 +80,8 @@ function initTabs() {
 function initSettings() {
     const popupSize = document.getElementById('popupSize');
     const fontSize = document.getElementById('fontSize');
-    const toggleFuriganaButton = document.getElementById('toggleFurigana');
 
-    if (!popupSize || !fontSize || !toggleFuriganaButton) {
+    if (!popupSize || !fontSize) {
         return;
     }
 
@@ -102,40 +101,17 @@ function initSettings() {
         chrome.storage.sync.set({ fontSize: event.target.value });
     });
 
-    toggleFuriganaButton.addEventListener('click', () => {
-        chrome.storage.sync.get({ furiganaVisible: true }, data => {
-            const nextValue = !data.furiganaVisible;
-
-            chrome.storage.sync.set({ furiganaVisible: nextValue }, () => {
-                setFuriganaButtonText(toggleFuriganaButton, nextValue);
-
-                sendMessageToActiveTab({
-                    action: 'toggleFurigana',
-                    visible: nextValue
-                });
-            });
-        });
-    });
-
     chrome.storage.sync.get(
         {
             popupSize: '100',
-            fontSize: '100',
-            furiganaVisible: true
+            fontSize: '100'
         },
         data => {
             popupSize.value = data.popupSize;
             fontSize.value = data.fontSize;
 
-            setFuriganaButtonText(toggleFuriganaButton, data.furiganaVisible);
-
             updatePopupSize(data.popupSize);
             updateFontSize(data.fontSize);
-
-            sendMessageToActiveTab({
-                action: 'toggleFurigana',
-                visible: data.furiganaVisible
-            });
         }
     );
 }
@@ -205,12 +181,6 @@ function createReadingHelpOption(modeKey, mode) {
                 furiganaVisible: modeKey !== 'none'
             },
             () => {
-                const toggleButton = document.getElementById('toggleFurigana');
-
-                if (toggleButton) {
-                    setFuriganaButtonText(toggleButton, modeKey !== 'none');
-                }
-
                 sendMessageToActiveTab({
                     action: 'updateReadingHelpMode',
                     mode: modeKey
