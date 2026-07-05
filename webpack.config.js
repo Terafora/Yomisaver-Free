@@ -37,9 +37,6 @@ module.exports = {
             https: require.resolve('https-browserify'),
             http: require.resolve('stream-http'),
             querystring: require.resolve('querystring-es3'),
-            'aws-sdk': require.resolve('aws-sdk'),
-            request: require.resolve('request'),
-            bluebird: require.resolve('bluebird')
         }
     },
     node: {
