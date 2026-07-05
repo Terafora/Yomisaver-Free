@@ -676,3 +676,34 @@
 .yomisaver-card-source a:hover {
     text-decoration: underline;
 }
+
+/* Export / backup actions */
+.yomisaver-export-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.yomisaver-secondary-button {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    background: #f8f9ff;
+    color: var(--ys-blue);
+    border: 1px solid #d9def5;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.yomisaver-secondary-button:hover {
+    background: #eef2ff;
+    border-color: #bfc8ef;
+    transform: translateY(-1px);
+}
+
+.yomisaver-secondary-button:active {
+    transform: translateY(1px);
+}

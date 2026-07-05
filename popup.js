@@ -265,12 +265,17 @@ function setFuriganaButtonText(button, furiganaVisible) {
 
 function initFlashcards() {
     const exportButton = document.getElementById('export-flashcards');
+    const backupButton = document.getElementById('backup-flashcards');
     const selectAllButton = document.getElementById('select-all-flashcards');
     const clearSelectedButton = document.getElementById('clear-selected-flashcards');
     const searchInput = document.getElementById('flashcard-search');
 
     if (exportButton) {
         exportButton.addEventListener('click', exportFlashcards);
+    }
+
+    if (backupButton) {
+    backupButton.addEventListener('click', backupFlashcards);
     }
 
     if (selectAllButton) {
@@ -534,6 +539,45 @@ async function exportFlashcards() {
     document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
+}
+
+async function backupFlashcards() {
+    const vocabList = await getMigratedVocabList();
+
+    if (!vocabList.length) {
+        alert('No flashcards available to back up.');
+        return;
+    }
+
+    const backup = {
+        app: 'YomiSaver',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        cardCount: vocabList.length,
+        cards: vocabList
+    };
+
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+
+    downloadLink.href = url;
+    downloadLink.download = createBackupFilename();
+
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    URL.revokeObjectURL(url);
+}
+
+function createBackupFilename() {
+    const date = new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    return `yomisaver-backup-${date}.json`;
 }
 
 function setVisibleFlashcardSelection(selected) {
