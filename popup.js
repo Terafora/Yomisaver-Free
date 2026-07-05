@@ -266,6 +266,8 @@ function setFuriganaButtonText(button, furiganaVisible) {
 function initFlashcards() {
     const exportButton = document.getElementById('export-flashcards');
     const backupButton = document.getElementById('backup-flashcards');
+    const importButton = document.getElementById('import-flashcards');
+    const importFileInput = document.getElementById('import-flashcards-file');
     const selectAllButton = document.getElementById('select-all-flashcards');
     const clearSelectedButton = document.getElementById('clear-selected-flashcards');
     const searchInput = document.getElementById('flashcard-search');
@@ -276,6 +278,25 @@ function initFlashcards() {
 
     if (backupButton) {
     backupButton.addEventListener('click', backupFlashcards);
+    }
+
+    if (importButton && importFileInput) {
+        importButton.addEventListener('click', () => {
+            importFileInput.click();
+        });
+
+        importFileInput.addEventListener('change', event => {
+            const file = event.target.files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            importFlashcardsFromBackupFile(file)
+                .finally(() => {
+                    importFileInput.value = '';
+                });
+        });
     }
 
     if (selectAllButton) {
@@ -570,6 +591,166 @@ async function backupFlashcards() {
     document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
+}
+
+async function importFlashcardsFromBackupFile(file) {
+    try {
+        const backup = await readJsonFile(file);
+        const cards = validateBackupFile(backup);
+
+        if (!cards.length) {
+            alert('This backup does not contain any cards.');
+            return;
+        }
+
+        const currentCards = await getMigratedVocabList();
+        const result = mergeImportedCards(currentCards, cards);
+
+        await storageSet({ [VOCAB_STORAGE_KEY]: result.cards });
+
+        await loadFlashcards();
+
+        alert(
+            [
+                'Import complete.',
+                `Added: ${result.added}`,
+                `Updated: ${result.updated}`,
+                `Skipped: ${result.skipped}`
+            ].join('\n')
+        );
+    } catch (error) {
+        console.error('YomiSaver import failed:', error);
+        alert(`Could not import backup: ${error.message}`);
+    }
+}
+
+function readJsonFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.addEventListener('load', () => {
+            try {
+                resolve(JSON.parse(String(reader.result || '')));
+            } catch {
+                reject(new Error('The selected file is not valid JSON.'));
+            }
+        });
+
+        reader.addEventListener('error', () => {
+            reject(new Error('The selected file could not be read.'));
+        });
+
+        reader.readAsText(file);
+    });
+}
+
+function validateBackupFile(backup) {
+    if (!backup || typeof backup !== 'object') {
+        throw new Error('Backup file is empty or invalid.');
+    }
+
+    if (backup.app && backup.app !== 'YomiSaver') {
+        throw new Error('This does not look like a YomiSaver backup.');
+    }
+
+    if (!Array.isArray(backup.cards)) {
+        throw new Error('Backup file does not contain a cards list.');
+    }
+
+    return backup.cards
+        .map(normaliseFlashcardEntry)
+        .filter(entry => entry.surface);
+}
+
+function mergeImportedCards(currentCards, importedCards) {
+    const mergedCards = [...currentCards];
+    const existingIndexByKey = new Map();
+
+    mergedCards.forEach((card, index) => {
+        existingIndexByKey.set(createFlashcardMergeKey(card), index);
+    });
+
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    importedCards.forEach(importedCard => {
+        const key = createFlashcardMergeKey(importedCard);
+        const existingIndex = existingIndexByKey.get(key);
+
+        if (existingIndex === undefined) {
+            mergedCards.push(importedCard);
+            existingIndexByKey.set(key, mergedCards.length - 1);
+            added += 1;
+            return;
+        }
+
+        const existingCard = mergedCards[existingIndex];
+        const mergedCard = mergeFlashcardData(existingCard, importedCard);
+
+        if (JSON.stringify(existingCard) === JSON.stringify(mergedCard)) {
+            skipped += 1;
+            return;
+        }
+
+        mergedCards[existingIndex] = mergedCard;
+        updated += 1;
+    });
+
+    return {
+        cards: mergedCards.sort((a, b) => b.savedAt - a.savedAt),
+        added,
+        updated,
+        skipped
+    };
+}
+
+function mergeFlashcardData(existingCard, importedCard) {
+    const merged = {
+        ...existingCard,
+        reading: existingCard.reading || importedCard.reading,
+        baseForm: existingCard.baseForm || importedCard.baseForm,
+        meanings: hasMeanings(existingCard.meanings)
+            ? existingCard.meanings
+            : importedCard.meanings,
+        jlptLevel: existingCard.jlptLevel || importedCard.jlptLevel,
+        sentence: existingCard.sentence || importedCard.sentence,
+        pageUrl: existingCard.pageUrl || importedCard.pageUrl,
+        pageTitle: existingCard.pageTitle || importedCard.pageTitle,
+        source: existingCard.source || importedCard.source,
+        savedAt: Math.min(
+            Number(existingCard.savedAt) || Date.now(),
+            Number(importedCard.savedAt) || Date.now()
+        ),
+        updatedAt: Date.now()
+    };
+
+    merged.wordInfo = {
+        word: merged.surface,
+        surface: merged.surface,
+        baseForm: merged.baseForm,
+        reading: merged.reading,
+        meanings: merged.meanings,
+        jlpt: merged.jlptLevel ? [`jlpt-${merged.jlptLevel}`] : [],
+        sentence: merged.sentence
+    };
+
+    return merged;
+}
+
+function createFlashcardMergeKey(card) {
+    return [
+        cleanText(card.surface || card.word),
+        cleanText(card.reading)
+    ].join('|').toLowerCase();
+}
+
+function hasMeanings(meanings) {
+    return Array.isArray(meanings) &&
+        meanings.some(meaning =>
+            Array.isArray(meaning.definitions) &&
+            meaning.definitions.some(Boolean)
+        );
 }
 
 function createBackupFilename() {

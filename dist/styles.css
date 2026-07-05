@@ -707,3 +707,7 @@
 .yomisaver-secondary-button:active {
     transform: translateY(1px);
 }
+
+#import-flashcards-file {
+    display: none;
+}
