@@ -171,7 +171,8 @@ function initJlptFilter() {
             }
         }
     );
-        updateJlptCoverageStatus();
+
+    updateJlptCoverageStatus();
 }
 
 function createReadingHelpOption(modeKey, mode) {
@@ -219,7 +220,7 @@ function createReadingHelpOption(modeKey, mode) {
                     action: 'toggleFurigana',
                     visible: modeKey !== 'none'
                 });
-                
+
                 setTimeout(updateJlptCoverageStatus, 500);
             }
         );
@@ -306,27 +307,45 @@ async function loadFlashcards() {
         return;
     }
 
-    const vocabList = await getMigratedVocabList();
+    try {
+        const vocabList = await getMigratedVocabList();
 
-    clearElement(vocabContainer);
+        clearElement(vocabContainer);
 
-    if (!vocabList.length) {
-        const emptyMessage = createElement('p', 'yomisaver', 'No flashcards saved yet!');
-        vocabContainer.appendChild(emptyMessage);
+        if (!vocabList.length) {
+            const emptyMessage = createElement(
+                'p',
+                'yomisaver-coming-soon',
+                'No flashcards saved yet!'
+            );
+
+            vocabContainer.appendChild(emptyMessage);
+            updateSelectedFlashcardCount();
+            updateFlashcardResultCount(0, 0);
+            return;
+        }
+
+        const displayList = [...vocabList].sort((a, b) => b.savedAt - a.savedAt);
+
+        displayList.forEach(entry => {
+            vocabContainer.appendChild(createFlashcardElement(entry));
+        });
+
+        filterFlashcards();
         updateSelectedFlashcardCount();
-        updateFlashcardResultCount(0, 0);
-        return;
+    } catch (error) {
+        console.error('YomiSaver failed to load flashcards:', error);
+
+        clearElement(vocabContainer);
+        vocabContainer.appendChild(
+            createElement(
+                'p',
+                'yomisaver-coming-soon',
+                'Could not load flashcards. Check the extension console for details.'
+            )
+        );
     }
-
-    const displayList = [...vocabList].sort((a, b) => b.savedAt - a.savedAt);
-
-    displayList.forEach(entry => {
-    vocabContainer.appendChild(createFlashcardElement(entry));
-    });
-
-    filterFlashcards();
-    updateSelectedFlashcardCount();
-    }
+}
 
 function createFlashcardElement(entry) {
     const entryElement = createElement('div', 'yomisaver-vocab-entry');
@@ -378,13 +397,77 @@ function createFlashcardElement(entry) {
         }
     });
 
-    if (entry.jlptLevel) {
-        entryElement.appendChild(
-            createElement('div', 'jlpt', formatJlptLevel(entry.jlptLevel))
-        );
+    const meta = createFlashcardMeta(entry);
+
+    if (meta.childNodes.length) {
+        entryElement.appendChild(meta);
     }
 
     return entryElement;
+}
+
+function createFlashcardMeta(entry) {
+    const meta = createElement('div', 'yomisaver-card-meta');
+
+    if (entry.jlptLevel) {
+        meta.appendChild(
+            createElement('span', 'yomisaver-card-badge', formatJlptLevel(entry.jlptLevel))
+        );
+    }
+
+    if (entry.sentence) {
+        const sentence = createElement('div', 'yomisaver-card-sentence');
+        sentence.textContent = entry.sentence;
+        meta.appendChild(sentence);
+    }
+
+    const source = createFlashcardSource(entry);
+
+    if (source) {
+        meta.appendChild(source);
+    }
+
+    return meta;
+}
+
+function createFlashcardSource(entry) {
+    const pageTitle = cleanText(entry.pageTitle);
+    const pageUrl = cleanText(entry.pageUrl);
+
+    if (!pageTitle && !pageUrl) {
+        return null;
+    }
+
+    const wrapper = createElement('div', 'yomisaver-card-source');
+
+    const label = createElement('span', '', 'Source: ');
+    wrapper.appendChild(label);
+
+    if (pageUrl && isSafeHttpUrl(pageUrl)) {
+        const link = document.createElement('a');
+        link.href = pageUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = pageTitle || pageUrl;
+
+        wrapper.appendChild(link);
+        return wrapper;
+    }
+
+    wrapper.appendChild(
+        createElement('span', '', pageTitle || pageUrl)
+    );
+
+    return wrapper;
+}
+
+function isSafeHttpUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
 }
 
 async function deleteFlashcard(id) {
@@ -393,7 +476,9 @@ async function deleteFlashcard(id) {
 
     await storageSet({ [VOCAB_STORAGE_KEY]: updatedList });
 
-    const entryElement = document.querySelector(`.yomisaver-vocab-entry[data-id="${cssEscape(id)}"]`);
+    const entryElement = document.querySelector(
+        `.yomisaver-vocab-entry[data-id="${cssEscape(id)}"]`
+    );
 
     if (entryElement) {
         entryElement.remove();
@@ -406,9 +491,10 @@ async function deleteFlashcard(id) {
         vocabContainer.appendChild(
             createElement('p', 'yomisaver-coming-soon', 'No flashcards saved yet!')
         );
-        filterFlashcards();
-        updateSelectedFlashcardCount();
     }
+
+    filterFlashcards();
+    updateSelectedFlashcardCount();
 }
 
 async function exportFlashcards() {
@@ -458,6 +544,16 @@ function setVisibleFlashcardSelection(selected) {
         });
 
     visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = selected;
+    });
+
+    updateSelectedFlashcardCount();
+}
+
+function setAllFlashcardSelection(selected) {
+    const checkboxes = document.querySelectorAll('.select-flashcard');
+
+    checkboxes.forEach(checkbox => {
         checkbox.checked = selected;
     });
 
@@ -523,6 +619,20 @@ function updateFlashcardResultCount(visibleCount = null, totalCount = null) {
     countElement.textContent = `${visible} / ${total} shown`;
 }
 
+function updateSelectedFlashcardCount() {
+    const countElement = document.getElementById('selected-flashcard-count');
+
+    if (!countElement) {
+        return;
+    }
+
+    const selectedCount = document.querySelectorAll('.select-flashcard:checked').length;
+
+    countElement.textContent = selectedCount === 1
+        ? '1 selected'
+        : `${selectedCount} selected`;
+}
+
 function createFlashcardSearchText(entry) {
     const parts = [
         entry.surface,
@@ -531,7 +641,8 @@ function createFlashcardSearchText(entry) {
         entry.reading,
         entry.jlptLevel,
         entry.sentence,
-        entry.pageTitle
+        entry.pageTitle,
+        entry.pageUrl
     ];
 
     const meanings = Array.isArray(entry.meanings) ? entry.meanings : [];
@@ -551,30 +662,6 @@ function normaliseSearchText(value) {
         .toLowerCase()
         .replace(/\s+/g, ' ')
         .trim();
-}
-
-function setAllFlashcardSelection(selected) {
-    const checkboxes = document.querySelectorAll('.select-flashcard');
-
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selected;
-    });
-
-    updateSelectedFlashcardCount();
-}
-
-function updateSelectedFlashcardCount() {
-    const countElement = document.getElementById('selected-flashcard-count');
-
-    if (!countElement) {
-        return;
-    }
-
-    const selectedCount = document.querySelectorAll('.select-flashcard:checked').length;
-
-    countElement.textContent = selectedCount === 1
-        ? '1 selected'
-        : `${selectedCount} selected`;
 }
 
 function createAnkiExportRow(entry) {
@@ -604,6 +691,10 @@ function createAnkiExportRow(entry) {
 
     if (entry.sentence) {
         backParts.push(`<div>Sentence: ${escapeHtml(entry.sentence)}</div>`);
+    }
+
+    if (entry.pageUrl) {
+        backParts.push(`<div>Source: ${escapeHtml(entry.pageUrl)}</div>`);
     }
 
     const back = cleanTsvField(backParts.join(' '));
@@ -698,6 +789,9 @@ function normaliseFlashcardEntry(entry) {
     };
 
     normalisedEntry.wordInfo = {
+        word: normalisedEntry.surface,
+        surface: normalisedEntry.surface,
+        baseForm: normalisedEntry.baseForm,
         reading: normalisedEntry.reading,
         meanings: normalisedEntry.meanings,
         jlpt: normalisedEntry.jlptLevel ? [`jlpt-${normalisedEntry.jlptLevel}`] : [],
