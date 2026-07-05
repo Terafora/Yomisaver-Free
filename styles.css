@@ -736,3 +736,36 @@
     color: #666;
     font-size: 0.84em !important;
 }
+
+/* Inline status messages */
+.yomisaver-status-message {
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 0.86em;
+    line-height: 1.35;
+    text-align: left;
+}
+
+.yomisaver-status-info {
+    background: #f8f9ff;
+    border: 1px solid #d9def5;
+    color: #444;
+}
+
+.yomisaver-status-success {
+    background: #f1fbf3;
+    border: 1px solid #bfe7c6;
+    color: #276738;
+}
+
+.yomisaver-status-warning {
+    background: #fff8e8;
+    border: 1px solid #f0d79a;
+    color: #735200;
+}
+
+.yomisaver-status-error {
+    background: #fff1f1;
+    border: 1px solid #f0b6b6;
+    color: #8a2222;
+}

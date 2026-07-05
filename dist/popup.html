@@ -31,7 +31,7 @@
 
             <div id="vocab-container"></div>
 
-            <div class="yomisaver-export-actions">
+           <div class="yomisaver-export-actions">
                 <button id="export-flashcards" class="yomisaver-premium-button">
                     Export Selected for Anki
                 </button>
@@ -50,6 +50,14 @@
                     accept="application/json,.json"
                     hidden
                 >
+
+                <div
+                    id="cards-status"
+                    class="yomisaver-status-message"
+                    role="status"
+                    aria-live="polite"
+                    hidden
+                ></div>
             </div>
         </div>
 

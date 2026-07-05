@@ -283,6 +283,7 @@ function initFlashcards() {
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {
+            clearCardsStatus();
             filterFlashcards();
         });
     }
@@ -500,7 +501,7 @@ async function exportFlashcards() {
         .filter(Boolean);
 
     if (!selectedIds.length) {
-        alert('No flashcards selected for export.');
+        showCardsStatus('No cards selected for Anki export.', 'warning');
         return;
     }
 
@@ -510,7 +511,7 @@ async function exportFlashcards() {
         .filter(Boolean);
 
     if (!selectedFlashcards.length) {
-        alert('No valid flashcards selected for export.');
+        showCardsStatus('No valid selected cards were found.', 'error');
         return;
     }
 
@@ -530,6 +531,11 @@ async function exportFlashcards() {
     document.body.removeChild(downloadLink);
 
     URL.revokeObjectURL(url);
+
+    showCardsStatus(
+        `Exported ${selectedFlashcards.length} card${selectedFlashcards.length === 1 ? '' : 's'} for Anki.`,
+        'success'
+    );
 }
 
 async function backupFlashcards() {
@@ -565,11 +571,13 @@ async function backupFlashcards() {
 
 async function importFlashcardsFromBackupFile(file) {
     try {
+        showCardsStatus('Importing backup…', 'info');
+
         const backup = await readJsonFile(file);
         const cards = validateBackupFile(backup);
 
         if (!cards.length) {
-            alert('This backup does not contain any cards.');
+            showCardsStatus('This backup does not contain any cards.', 'warning');
             return;
         }
 
@@ -580,17 +588,13 @@ async function importFlashcardsFromBackupFile(file) {
 
         await loadFlashcards();
 
-        alert(
-            [
-                'Import complete.',
-                `Added: ${result.added}`,
-                `Updated: ${result.updated}`,
-                `Skipped: ${result.skipped}`
-            ].join('\n')
+        showCardsStatus(
+            `Import complete. Added ${result.added}, updated ${result.updated}, skipped ${result.skipped}.`,
+            'success'
         );
     } catch (error) {
         console.error('YomiSaver import failed:', error);
-        alert(`Could not import backup: ${error.message}`);
+        showCardsStatus(`Could not import backup: ${error.message}`, 'error');
     }
 }
 
@@ -753,6 +757,44 @@ function setAllFlashcardSelection(selected) {
     });
 
     updateSelectedFlashcardCount();
+}
+
+function showCardsStatus(message, type = 'info') {
+    const statusElement = document.getElementById('cards-status');
+
+    if (!statusElement) {
+        return;
+    }
+
+    statusElement.textContent = message;
+    statusElement.hidden = false;
+
+    statusElement.classList.remove(
+        'yomisaver-status-info',
+        'yomisaver-status-success',
+        'yomisaver-status-warning',
+        'yomisaver-status-error'
+    );
+
+    statusElement.classList.add(`yomisaver-status-${type}`);
+}
+
+function clearCardsStatus() {
+    const statusElement = document.getElementById('cards-status');
+
+    if (!statusElement) {
+        return;
+    }
+
+    statusElement.textContent = '';
+    statusElement.hidden = true;
+
+    statusElement.classList.remove(
+        'yomisaver-status-info',
+        'yomisaver-status-success',
+        'yomisaver-status-warning',
+        'yomisaver-status-error'
+    );
 }
 
 function filterFlashcards() {
