@@ -6,7 +6,7 @@ const CopyPlugin =
 module.exports = {
     mode: 'production',
 
-    devtool: 'source-map',
+    devtool: false,
 
     entry: {
         content: './src/content.js',
