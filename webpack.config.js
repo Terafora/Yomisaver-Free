@@ -4,45 +4,76 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     mode: 'production',
+
     devtool: 'source-map',
+
     entry: {
         content: './src/content.js',
         popup: './popup.js'
     },
+
     output: {
         filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist'),
         clean: true
     },
+
     resolve: {
         fallback: {
             assert: require.resolve('assert/'),
             buffer: require.resolve('buffer/'),
-            crypto: require.resolve('crypto-browserify'),
-            os: require.resolve('os-browserify/browser'),
-            path: require.resolve('path-browserify'),
-            process: require.resolve('process/browser'),
-            stream: require.resolve('stream-browserify'),
+            crypto: require.resolve(
+                'crypto-browserify'
+            ),
+            os: require.resolve(
+                'os-browserify/browser'
+            ),
+            path: require.resolve(
+                'path-browserify'
+            ),
+            process: require.resolve(
+                'process/browser'
+            ),
+            stream: require.resolve(
+                'stream-browserify'
+            ),
             util: require.resolve('util/'),
-            zlib: require.resolve('browserify-zlib'),
+            zlib: require.resolve(
+                'browserify-zlib'
+            ),
+            url: require.resolve('url/'),
+            vm: require.resolve(
+                'vm-browserify'
+            ),
+            constants: require.resolve(
+                'constants-browserify'
+            ),
+            console: require.resolve(
+                'console-browserify'
+            ),
+            https: require.resolve(
+                'https-browserify'
+            ),
+            http: require.resolve(
+                'stream-http'
+            ),
+            querystring: require.resolve(
+                'querystring-es3'
+            ),
+
             fs: false,
             child_process: false,
             dns: false,
             tls: false,
             net: false,
-            url: require.resolve('url/'),
-            vm: require.resolve('vm-browserify'),
-            constants: require.resolve('constants-browserify'),
-            console: require.resolve('console-browserify'),
-            readline: false,
-            https: require.resolve('https-browserify'),
-            http: require.resolve('stream-http'),
-            querystring: require.resolve('querystring-es3')
+            readline: false
         }
     },
+
     node: {
         global: true
     },
+
     module: {
         rules: [
             {
@@ -51,8 +82,12 @@ module.exports = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['@babel/preset-env'],
-                        plugins: ['@babel/plugin-transform-runtime']
+                        presets: [
+                            '@babel/preset-env'
+                        ],
+                        plugins: [
+                            '@babel/plugin-transform-runtime'
+                        ]
                     }
                 }
             },
@@ -66,39 +101,63 @@ module.exports = {
             }
         ]
     },
+
     optimization: {
         minimize: true,
         moduleIds: 'deterministic',
         chunkIds: 'deterministic'
     },
+
     plugins: [
         new webpack.IgnorePlugin({
             resourceRegExp: /^\.\/locale$/,
             contextRegExp: /moment$/
         }),
+
         new webpack.IgnorePlugin({
             resourceRegExp: /^npm$/
         }),
+
         new CopyPlugin({
             patterns: [
                 {
-                    from: 'node_modules/kuromoji/dict/*.dat*',
+                    from:
+                        'node_modules/kuromoji/' +
+                        'dict/*.dat*',
                     to: 'dict/[name][ext]'
                 },
-                { from: 'manifest.json' },
-                { from: 'background.js' },
-                { from: 'popup.html' },
-                { from: 'popup.js' },
-                { from: 'content.css' },
-                { from: 'popup.css' },
-                { from: 'icon-16.png' },
-                { from: 'icon-48.png' },
-                { from: 'icon-128.png' }
+                {
+                    from: 'manifest.json'
+                },
+                {
+                    from: 'background.js'
+                },
+                {
+                    from: 'popup.html'
+                },
+                {
+                    from: 'content.css'
+                },
+                {
+                    from: 'popup.css'
+                },
+                {
+                    from: 'icon-16.png'
+                },
+                {
+                    from: 'icon-48.png'
+                },
+                {
+                    from: 'icon-128.png'
+                }
             ]
         }),
+
         new webpack.DefinePlugin({
-            'process.env.NODE_ENV': JSON.stringify('production')
+            'process.env.NODE_ENV':
+                JSON.stringify('production')
         }),
+
         new webpack.LoaderOptionsPlugin({
             debug: false
         })
