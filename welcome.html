@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Welcome to YomiSaver</title>
+
+    <link
+        rel="stylesheet"
+        href="welcome.css"
+    >
+</head>
+
+<body>
+    <main class="welcome-shell">
+        <section
+            class="welcome-card"
+            aria-labelledby="welcome-title"
+        >
+            <header class="welcome-header">
+                <div
+                    class="welcome-mark"
+                    aria-hidden="true"
+                >
+                    読
+                </div>
+
+                <div>
+                    <p class="welcome-eyebrow">
+                        Japanese reading companion
+                    </p>
+
+                    <h1 id="welcome-title">
+                        Welcome to YomiSaver
+                    </h1>
+
+                    <p class="welcome-tagline">
+                        Read naturally. Save what matters.
+                    </p>
+                </div>
+            </header>
+
+            <div class="welcome-introduction">
+                <h2>
+                    A quick note before we begin
+                </h2>
+
+                <p>
+                    YomiSaver works directly with the
+                    Japanese text on webpages you visit.
+                    Before enabling it, here is exactly
+                    what it does with that information.
+                </p>
+            </div>
+
+            <div class="privacy-grid">
+                <article class="privacy-card">
+                    <span
+                        class="privacy-number"
+                        aria-hidden="true"
+                    >
+                        01
+                    </span>
+
+                    <div>
+                        <h3>
+                            Page text is processed locally
+                        </h3>
+
+                        <p>
+                            YomiSaver reads Japanese text
+                            on standard HTTP and HTTPS
+                            webpages so it can add
+                            furigana and identify words.
+                        </p>
+
+                        <p>
+                            Tokenisation and furigana
+                            generation happen inside your
+                            browser.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="privacy-card">
+                    <span
+                        class="privacy-number"
+                        aria-hidden="true"
+                    >
+                        02
+                    </span>
+
+                    <div>
+                        <h3>
+                            Dictionary terms use Jisho
+                        </h3>
+
+                        <p>
+                            When you request a definition,
+                            the Japanese word being looked
+                            up is sent securely to
+                            Jisho.org.
+                        </p>
+
+                        <p>
+                            JLPT enrichment may also send
+                            individual Japanese vocabulary
+                            terms when local level data is
+                            unavailable.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="privacy-card">
+                    <span
+                        class="privacy-number"
+                        aria-hidden="true"
+                    >
+                        03
+                    </span>
+
+                    <div>
+                        <h3>
+                            Saved cards stay in Chrome
+                        </h3>
+
+                        <p>
+                            Saved vocabulary can include
+                            the word, reading, meanings,
+                            sentence context, page title,
+                            and page URL.
+                        </p>
+
+                        <p>
+                            Cards are stored in Chrome’s
+                            local extension storage.
+                            Display preferences may sync
+                            through Chrome if browser sync
+                            is enabled.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="privacy-card">
+                    <span
+                        class="privacy-number"
+                        aria-hidden="true"
+                    >
+                        04
+                    </span>
+
+                    <div>
+                        <h3>
+                            No tracking or advertising
+                        </h3>
+
+                        <p>
+                            YomiSaver has no user account,
+                            analytics, behavioural
+                            tracking, or advertising.
+                        </p>
+
+                        <p>
+                            Your saved vocabulary is not
+                            sold or used to build a
+                            profile about you.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <details class="privacy-details">
+                <summary>
+                    What enabling YomiSaver means
+                </summary>
+
+                <div>
+                    <p>
+                        By selecting “Enable YomiSaver,”
+                        you allow the extension to:
+                    </p>
+
+                    <ul>
+                        <li>
+                            Process Japanese text on
+                            webpages to provide reading
+                            assistance.
+                        </li>
+
+                        <li>
+                            Send dictionary lookup terms
+                            to Jisho.org over HTTPS.
+                        </li>
+
+                        <li>
+                            Store vocabulary cards and
+                            their source context in
+                            Chrome’s extension storage.
+                        </li>
+
+                        <li>
+                            Store your display and JLPT
+                            preferences using Chrome
+                            storage.
+                        </li>
+                    </ul>
+
+                    <p>
+                        YomiSaver uses this information
+                        only to provide its Japanese
+                        reading and vocabulary features.
+                    </p>
+                </div>
+            </details>
+
+            <div class="welcome-actions">
+                <button
+                    id="enable-yomisaver"
+                    type="button"
+                >
+                    Enable YomiSaver
+                </button>
+
+                <p class="welcome-consent-note">
+                    YomiSaver remains paused until you
+                    choose to enable it.
+                </p>
+
+                <p
+                    id="welcome-status"
+                    class="welcome-status"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+            </div>
+        </section>
+    </main>
+
+    <script src="welcome.js"></script>
+</body>
+</html>

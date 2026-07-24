@@ -1,0 +1,440 @@
+:root {
+    --ys-paper: #fffaf1;
+    --ys-paper-deep: #f4ead8;
+    --ys-ink: #25221f;
+    --ys-muted: #6f675f;
+    --ys-border: rgba(53, 46, 40, 0.15);
+    --ys-vermilion: #d84a42;
+    --ys-vermilion-dark: #a93430;
+    --ys-vermilion-soft: rgba(216, 74, 66, 0.1);
+    --ys-indigo: #31527a;
+    --ys-indigo-soft: rgba(49, 82, 122, 0.09);
+    --ys-success: #316b52;
+    --ys-error: #a93430;
+    --ys-shadow: 0 30px 80px rgba(43, 35, 29, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+    background:
+        radial-gradient(
+            circle at 15% 12%,
+            rgba(216, 74, 66, 0.12),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 86% 82%,
+            rgba(49, 82, 122, 0.12),
+            transparent 38%
+        ),
+        #efe7da;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--ys-ink);
+    background:
+        repeating-linear-gradient(
+            0deg,
+            rgba(68, 54, 44, 0.018) 0,
+            rgba(68, 54, 44, 0.018) 1px,
+            transparent 1px,
+            transparent 4px
+        );
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+button,
+summary {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.welcome-shell {
+    width: min(1040px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 48px 0;
+}
+
+.welcome-card {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(24px, 5vw, 58px);
+    border: 1px solid rgba(82, 66, 53, 0.14);
+    border-radius: 28px;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.76),
+            transparent 42%
+        ),
+        var(--ys-paper);
+    box-shadow: var(--ys-shadow);
+}
+
+.welcome-card::before {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 9px;
+    height: 100%;
+    background:
+        linear-gradient(
+            to bottom,
+            var(--ys-vermilion),
+            var(--ys-vermilion-dark)
+        );
+    content: "";
+}
+
+.welcome-card::after {
+    position: absolute;
+    top: -120px;
+    right: -100px;
+    width: 320px;
+    height: 320px;
+    border: 48px solid rgba(216, 74, 66, 0.045);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+}
+
+.welcome-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--ys-border);
+}
+
+.welcome-mark {
+    display: grid;
+    flex: 0 0 auto;
+    width: 76px;
+    height: 76px;
+    place-items: center;
+    border-radius: 22px;
+    color: #fff;
+    background:
+        linear-gradient(
+            145deg,
+            var(--ys-vermilion),
+            var(--ys-vermilion-dark)
+        );
+    box-shadow:
+        0 12px 25px rgba(169, 52, 48, 0.24);
+    font-family:
+        "Yu Mincho",
+        "Hiragino Mincho ProN",
+        serif;
+    font-size: 2.45rem;
+    line-height: 1;
+}
+
+.welcome-eyebrow {
+    margin: 0 0 5px;
+    color: var(--ys-vermilion-dark);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+    overflow-wrap: anywhere;
+}
+
+h1 {
+    margin: 0;
+    font-family:
+        "Yu Mincho",
+        "Hiragino Mincho ProN",
+        Georgia,
+        serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+}
+
+.welcome-tagline {
+    margin: 8px 0 0;
+    color: var(--ys-muted);
+    font-size: 1.03rem;
+}
+
+.welcome-introduction {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+    margin: 38px 0 30px;
+}
+
+.welcome-introduction h2 {
+    margin: 0 0 10px;
+    font-family:
+        "Yu Mincho",
+        "Hiragino Mincho ProN",
+        Georgia,
+        serif;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.welcome-introduction p {
+    margin: 0;
+    color: var(--ys-muted);
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+.privacy-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.privacy-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 15px;
+    padding: 22px;
+    border: 1px solid var(--ys-border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow:
+        0 8px 24px rgba(50, 42, 35, 0.055);
+}
+
+.privacy-card:nth-child(even) {
+    background:
+        linear-gradient(
+            145deg,
+            var(--ys-indigo-soft),
+            rgba(255, 255, 255, 0.6)
+        );
+}
+
+.privacy-number {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 12px;
+    color: var(--ys-vermilion-dark);
+    background: var(--ys-vermilion-soft);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.privacy-card h3 {
+    margin: 2px 0 8px;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.privacy-card p {
+    margin: 0;
+    color: var(--ys-muted);
+    font-size: 0.9rem;
+    line-height: 1.62;
+}
+
+.privacy-card p + p {
+    margin-top: 8px;
+}
+
+.privacy-details {
+    position: relative;
+    z-index: 1;
+    margin-top: 20px;
+    border: 1px solid var(--ys-border);
+    border-radius: 18px;
+    background: var(--ys-paper-deep);
+}
+
+.privacy-details summary {
+    position: relative;
+    padding: 18px 50px 18px 20px;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+}
+
+.privacy-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.privacy-details summary::after {
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    content: "+";
+    color: var(--ys-vermilion-dark);
+    font-size: 1.5rem;
+    transform: translateY(-50%);
+}
+
+.privacy-details[open] summary::after {
+    content: "−";
+}
+
+.privacy-details > div {
+    padding: 0 22px 20px;
+    border-top: 1px solid var(--ys-border);
+    color: var(--ys-muted);
+    line-height: 1.65;
+}
+
+.privacy-details ul {
+    padding-left: 22px;
+}
+
+.privacy-details li + li {
+    margin-top: 7px;
+}
+
+.welcome-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 30px;
+    text-align: center;
+}
+
+#enable-yomisaver {
+    min-width: min(100%, 290px);
+    padding: 15px 24px;
+    border: 0;
+    border-radius: 14px;
+    color: #fff;
+    background:
+        linear-gradient(
+            145deg,
+            var(--ys-vermilion),
+            var(--ys-vermilion-dark)
+        );
+    box-shadow:
+        0 12px 25px rgba(169, 52, 48, 0.22);
+    font-weight: 850;
+    letter-spacing: 0.015em;
+    transition:
+        transform 150ms ease,
+        box-shadow 150ms ease,
+        opacity 150ms ease;
+}
+
+#enable-yomisaver:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow:
+        0 16px 30px rgba(169, 52, 48, 0.28);
+}
+
+#enable-yomisaver:focus-visible,
+.privacy-details summary:focus-visible {
+    outline: 3px solid rgba(49, 82, 122, 0.28);
+    outline-offset: 3px;
+}
+
+#enable-yomisaver:disabled {
+    cursor: default;
+    opacity: 0.78;
+}
+
+.welcome-consent-note {
+    max-width: 520px;
+    margin: 13px 0 0;
+    color: var(--ys-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.welcome-status {
+    min-height: 1.5em;
+    margin: 14px 0 0;
+    font-size: 0.9rem;
+    font-weight: 750;
+}
+
+.welcome-status.success {
+    color: var(--ys-success);
+}
+
+.welcome-status.error {
+    color: var(--ys-error);
+}
+
+@media (max-width: 720px) {
+    .welcome-shell {
+        width: min(100% - 20px, 1040px);
+        padding: 10px 0;
+    }
+
+    .welcome-card {
+        padding: 24px 20px 30px;
+        border-radius: 20px;
+    }
+
+    .welcome-header {
+        align-items: flex-start;
+    }
+
+    .welcome-mark {
+        width: 58px;
+        height: 58px;
+        border-radius: 17px;
+        font-size: 1.9rem;
+    }
+
+    .privacy-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 460px) {
+    .welcome-header {
+        flex-direction: column;
+    }
+
+    .privacy-card {
+        grid-template-columns: 1fr;
+    }
+
+    .privacy-number {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+}

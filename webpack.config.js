@@ -1,6 +1,7 @@
 const path = require('path');
 const webpack = require('webpack');
-const CopyPlugin = require('copy-webpack-plugin');
+const CopyPlugin =
+    require('copy-webpack-plugin');
 
 module.exports = {
     mode: 'production',
@@ -14,14 +15,19 @@ module.exports = {
 
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(
+            __dirname,
+            'dist'
+        ),
         clean: true
     },
 
     resolve: {
         fallback: {
-            assert: require.resolve('assert/'),
-            buffer: require.resolve('buffer/'),
+            assert:
+                require.resolve('assert/'),
+            buffer:
+                require.resolve('buffer/'),
             crypto: require.resolve(
                 'crypto-browserify'
             ),
@@ -37,11 +43,13 @@ module.exports = {
             stream: require.resolve(
                 'stream-browserify'
             ),
-            util: require.resolve('util/'),
+            util:
+                require.resolve('util/'),
             zlib: require.resolve(
                 'browserify-zlib'
             ),
-            url: require.resolve('url/'),
+            url:
+                require.resolve('url/'),
             vm: require.resolve(
                 'vm-browserify'
             ),
@@ -110,8 +118,10 @@ module.exports = {
 
     plugins: [
         new webpack.IgnorePlugin({
-            resourceRegExp: /^\.\/locale$/,
-            contextRegExp: /moment$/
+            resourceRegExp:
+                /^\.\/locale$/,
+            contextRegExp:
+                /moment$/
         }),
 
         new webpack.IgnorePlugin({
@@ -122,40 +132,63 @@ module.exports = {
             patterns: [
                 {
                     from:
-                        'node_modules/kuromoji/' +
-                        'dict/*.dat*',
-                    to: 'dict/[name][ext]'
+                        'node_modules/' +
+                        'kuromoji/dict/*.dat*',
+                    to:
+                        'dict/[name][ext]'
                 },
                 {
-                    from: 'manifest.json'
+                    from:
+                        'manifest.json'
                 },
                 {
-                    from: 'background.js'
+                    from:
+                        'background.js'
                 },
                 {
-                    from: 'popup.html'
+                    from:
+                        'popup.html'
                 },
                 {
-                    from: 'content.css'
+                    from:
+                        'content.css'
                 },
                 {
-                    from: 'popup.css'
+                    from:
+                        'popup.css'
                 },
                 {
-                    from: 'icon-16.png'
+                    from:
+                        'welcome.html'
                 },
                 {
-                    from: 'icon-48.png'
+                    from:
+                        'welcome.css'
                 },
                 {
-                    from: 'icon-128.png'
+                    from:
+                        'welcome.js'
+                },
+                {
+                    from:
+                        'icon-16.png'
+                },
+                {
+                    from:
+                        'icon-48.png'
+                },
+                {
+                    from:
+                        'icon-128.png'
                 }
             ]
         }),
 
         new webpack.DefinePlugin({
             'process.env.NODE_ENV':
-                JSON.stringify('production')
+                JSON.stringify(
+                    'production'
+                )
         }),
 
         new webpack.LoaderOptionsPlugin({

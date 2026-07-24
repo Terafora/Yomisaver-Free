@@ -1,11 +1,21 @@
-import { initializeTokenizer } from './modules/tokenizer';
-import { isJapanesePage } from './modules/utils/japanese';
+import {
+    initializeTokenizer
+} from './modules/tokenizer';
+
+import {
+    isJapanesePage
+} from './modules/utils/japanese';
+
 import {
     injectFurigana,
     setCurrentReadingHelpMode,
     shouldSkipTextNode
 } from './modules/furigana/injector';
-import { addSelectionListener } from './modules/events/listeners';
+
+import {
+    addSelectionListener
+} from './modules/events/listeners';
+
 import {
     DEFAULT_READING_HELP_MODE,
     READING_HELP_MODE_STORAGE_KEY,
@@ -13,12 +23,27 @@ import {
     getReadingHelpMode,
     getJlptDatasetCoverageForDocument
 } from './modules/jlpt/filter';
-import { enrichJlptLevelsForDocument } from './modules/jlpt/enricher';
+
+import {
+    enrichJlptLevelsForDocument
+} from './modules/jlpt/enricher';
+
+const PRIVACY_ACKNOWLEDGEMENT_KEY =
+    'privacyAcknowledged';
+
+const PRIVACY_NOTICE_VERSION_KEY =
+    'privacyNoticeVersion';
+
+const CURRENT_PRIVACY_NOTICE_VERSION =
+    '1.0';
 
 let isInitializing = false;
 let listenersInitialized = false;
 let storageListenerInitialized = false;
-let currentReadingHelpMode = DEFAULT_READING_HELP_MODE;
+
+let currentReadingHelpMode =
+    DEFAULT_READING_HELP_MODE;
+
 let furiganaVisible = true;
 let jlptEnrichmentTimer = null;
 
@@ -27,7 +52,12 @@ async function initialize() {
         return;
     }
 
-    if (document.documentElement.hasAttribute('data-yomisaver-processed')) {
+    if (
+        document.documentElement
+            .hasAttribute(
+                'data-yomisaver-processed'
+            )
+    ) {
         initializeListenersOnly();
         return;
     }
@@ -36,34 +66,66 @@ async function initialize() {
         return;
     }
 
-    if (!isJapanesePage()) {
-        return;
-    }
-
     isInitializing = true;
+    initializeStorageListenerOnly();
 
     try {
-        const settings = await getSavedSettings();
+        const acknowledged =
+            await getPrivacyAcknowledgement();
 
-        currentReadingHelpMode = getReadingHelpMode(
-            settings[READING_HELP_MODE_STORAGE_KEY]
+        if (!acknowledged) {
+            document.documentElement
+                .dataset.yomisaverStatus =
+                    'paused';
+
+            return;
+        }
+
+        delete document.documentElement
+            .dataset.yomisaverStatus;
+
+        if (!isJapanesePage()) {
+            return;
+        }
+
+        const settings =
+            await getSavedSettings();
+
+        currentReadingHelpMode =
+            getReadingHelpMode(
+                settings[
+                    READING_HELP_MODE_STORAGE_KEY
+                ]
+            );
+
+        furiganaVisible =
+            settings.furiganaVisible !==
+            false;
+
+        setCurrentReadingHelpMode(
+            currentReadingHelpMode
         );
-        furiganaVisible = settings.furiganaVisible !== false;
-
-        setCurrentReadingHelpMode(currentReadingHelpMode);
 
         await initializeTokenizer();
-        await traverseDOM(document.body);
-
-        document.documentElement.setAttribute(
-            'data-yomisaver-processed',
-            'true'
+        await traverseDOM(
+            document.body
         );
 
+        document.documentElement
+            .setAttribute(
+                'data-yomisaver-processed',
+                'true'
+            );
+
         initializeListenersOnly();
-        applySavedVisualSettings(settings);
+        applySavedVisualSettings(
+            settings
+        );
     } catch (error) {
-        console.error('YomiSaver initialization failed:', error);
+        console.error(
+            'YomiSaver initialization failed:',
+            error
+        );
     } finally {
         isInitializing = false;
     }
@@ -75,90 +137,165 @@ function initializeListenersOnly() {
         listenersInitialized = true;
     }
 
-    if (!storageListenerInitialized) {
-        addStorageChangeListener();
-        storageListenerInitialized = true;
+    initializeStorageListenerOnly();
+}
+
+function initializeStorageListenerOnly() {
+    if (storageListenerInitialized) {
+        return;
     }
+
+    addStorageChangeListener();
+    storageListenerInitialized = true;
 }
 
 async function traverseDOM(root) {
     try {
-        const walker = document.createTreeWalker(
-            root,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode(node) {
-                    return shouldSkipTextNode(node)
-                        ? NodeFilter.FILTER_REJECT
-                        : NodeFilter.FILTER_ACCEPT;
+        const walker =
+            document.createTreeWalker(
+                root,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode(node) {
+                        return shouldSkipTextNode(
+                            node
+                        )
+                            ? NodeFilter
+                                .FILTER_REJECT
+                            : NodeFilter
+                                .FILTER_ACCEPT;
+                    }
                 }
-            }
-        );
+            );
 
         const textNodes = [];
         let node;
 
-        while ((node = walker.nextNode())) {
+        while (
+            (
+                node =
+                    walker.nextNode()
+            )
+        ) {
             textNodes.push(node);
         }
 
-        for (const textNode of textNodes) {
-            await injectFurigana(textNode);
+        for (
+            const textNode of
+            textNodes
+        ) {
+            await injectFurigana(
+                textNode
+            );
         }
     } catch (error) {
-        console.error('Error in traverseDOM:', error);
+        console.error(
+            'Error in traverseDOM:',
+            error
+        );
     }
 }
 
 function updatePopupSize(size) {
-    document.documentElement.style.setProperty(
-        '--yomisaver-popup-scale',
-        size
-    );
+    document.documentElement
+        .style.setProperty(
+            '--yomisaver-popup-scale',
+            size
+        );
 }
 
 function updateFontSize(size) {
-    document.documentElement.style.setProperty(
-        '--yomisaver-font-scale',
-        size
-    );
+    document.documentElement
+        .style.setProperty(
+            '--yomisaver-font-scale',
+            size
+        );
 }
 
-function setAllFuriganaVisibility(visible) {
-    const furiganaElements = document.querySelectorAll(
-        '.yomisaver-ruby rt'
+function setAllFuriganaVisibility(
+    visible
+) {
+    const furiganaElements =
+        document.querySelectorAll(
+            '.yomisaver-ruby rt'
+        );
+
+    furiganaElements.forEach(
+        rt => {
+            rt.style.display =
+                visible
+                    ? ''
+                    : 'none';
+        }
     );
 
-    furiganaElements.forEach(rt => {
-        rt.style.display = visible ? '' : 'none';
-    });
-
-    document.documentElement.dataset.yomisaverFurigana =
-        visible ? 'visible' : 'hidden';
+    document.documentElement
+        .dataset.yomisaverFurigana =
+            visible
+                ? 'visible'
+                : 'hidden';
 }
 
 function applyCurrentFuriganaSettings() {
-    if (!furiganaVisible || currentReadingHelpMode === 'none') {
-        setAllFuriganaVisibility(false);
+    if (
+        !furiganaVisible ||
+        currentReadingHelpMode ===
+            'none'
+    ) {
+        setAllFuriganaVisibility(
+            false
+        );
+
         return;
     }
 
-    applyReadingHelpModeToDocument(currentReadingHelpMode);
+    applyReadingHelpModeToDocument(
+        currentReadingHelpMode
+    );
 }
 
 function setReadingHelpMode(mode) {
-    currentReadingHelpMode = getReadingHelpMode(mode);
-    setCurrentReadingHelpMode(currentReadingHelpMode);
+    currentReadingHelpMode =
+        getReadingHelpMode(mode);
+
+    setCurrentReadingHelpMode(
+        currentReadingHelpMode
+    );
 
     applyCurrentFuriganaSettings();
     scheduleJlptEnrichment();
 }
 
 function setFuriganaEnabled(visible) {
-    furiganaVisible = Boolean(visible);
+    furiganaVisible =
+        Boolean(visible);
 
     applyCurrentFuriganaSettings();
     scheduleJlptEnrichment();
+}
+
+function getPrivacyAcknowledgement() {
+    return new Promise(resolve => {
+        chrome.storage.local.get(
+            {
+                [PRIVACY_ACKNOWLEDGEMENT_KEY]:
+                    false,
+                [PRIVACY_NOTICE_VERSION_KEY]:
+                    ''
+            },
+            data => {
+                resolve(
+                    data[
+                        PRIVACY_ACKNOWLEDGEMENT_KEY
+                    ] === true &&
+                    data[
+                        PRIVACY_NOTICE_VERSION_KEY
+                    ] ===
+                        CURRENT_PRIVACY_NOTICE_VERSION
+                );
+            }
+        );
+    });
 }
 
 function getSavedSettings() {
@@ -176,117 +313,229 @@ function getSavedSettings() {
     });
 }
 
-function applySavedVisualSettings(settings) {
+function applySavedVisualSettings(
+    settings
+) {
     if (settings.popupSize) {
-        updatePopupSize(Number(settings.popupSize) / 100);
+        updatePopupSize(
+            Number(
+                settings.popupSize
+            ) / 100
+        );
     }
 
     if (settings.fontSize) {
-        updateFontSize(Number(settings.fontSize) / 100);
+        updateFontSize(
+            Number(
+                settings.fontSize
+            ) / 100
+        );
     }
 
-    currentReadingHelpMode = getReadingHelpMode(
-        settings[READING_HELP_MODE_STORAGE_KEY]
-    );
-    furiganaVisible = settings.furiganaVisible !== false;
+    currentReadingHelpMode =
+        getReadingHelpMode(
+            settings[
+                READING_HELP_MODE_STORAGE_KEY
+            ]
+        );
 
-    setCurrentReadingHelpMode(currentReadingHelpMode);
+    furiganaVisible =
+        settings.furiganaVisible !==
+        false;
+
+    setCurrentReadingHelpMode(
+        currentReadingHelpMode
+    );
+
     applyCurrentFuriganaSettings();
     scheduleJlptEnrichment();
 }
 
 function shouldEnrichJlptLevels() {
-    return furiganaVisible &&
-        currentReadingHelpMode !== 'all' &&
-        currentReadingHelpMode !== 'none';
+    return (
+        furiganaVisible &&
+        currentReadingHelpMode !==
+            'all' &&
+        currentReadingHelpMode !==
+            'none'
+    );
 }
 
 function scheduleJlptEnrichment() {
     if (jlptEnrichmentTimer) {
-        clearTimeout(jlptEnrichmentTimer);
+        clearTimeout(
+            jlptEnrichmentTimer
+        );
+
         jlptEnrichmentTimer = null;
     }
 
-    if (!shouldEnrichJlptLevels()) {
+    if (
+        !shouldEnrichJlptLevels()
+    ) {
         return;
     }
 
-    jlptEnrichmentTimer = setTimeout(() => {
-        enrichJlptLevelsForDocument({
-            maxLookups: 80,
-            onUpdate: () => {
-                applyCurrentFuriganaSettings();
-            }
-        }).catch(error => {
-            console.warn(
-                'YomiSaver JLPT enrichment failed:',
-                error
-            );
-        });
-    }, 300);
+    jlptEnrichmentTimer =
+        setTimeout(
+            () => {
+                enrichJlptLevelsForDocument({
+                    maxLookups: 80,
+                    onUpdate: () => {
+                        applyCurrentFuriganaSettings();
+                    }
+                }).catch(error => {
+                    console.warn(
+                        'YomiSaver JLPT ' +
+                        'enrichment failed:',
+                        error
+                    );
+                });
+            },
+            300
+        );
 }
 
 function addStorageChangeListener() {
-    chrome.storage.onChanged.addListener((changes, areaName) => {
-        if (areaName !== 'sync') {
-            return;
-        }
+    chrome.storage.onChanged.addListener(
+        (changes, areaName) => {
+            if (
+                areaName === 'local' &&
+                changes[
+                    PRIVACY_ACKNOWLEDGEMENT_KEY
+                ]
+            ) {
+                const acknowledged =
+                    changes[
+                        PRIVACY_ACKNOWLEDGEMENT_KEY
+                    ].newValue === true;
 
-        if (changes[READING_HELP_MODE_STORAGE_KEY]) {
-            setReadingHelpMode(
-                changes[READING_HELP_MODE_STORAGE_KEY].newValue
-            );
-        }
+                if (acknowledged) {
+                    setTimeout(
+                        initialize,
+                        50
+                    );
+                }
 
-        if (changes.furiganaVisible) {
-            setFuriganaEnabled(changes.furiganaVisible.newValue);
-        }
+                return;
+            }
 
-        if (changes.popupSize) {
-            updatePopupSize(
-                Number(changes.popupSize.newValue) / 100
-            );
-        }
+            if (areaName !== 'sync') {
+                return;
+            }
 
-        if (changes.fontSize) {
-            updateFontSize(
-                Number(changes.fontSize.newValue) / 100
-            );
+            if (
+                changes[
+                    READING_HELP_MODE_STORAGE_KEY
+                ]
+            ) {
+                setReadingHelpMode(
+                    changes[
+                        READING_HELP_MODE_STORAGE_KEY
+                    ].newValue
+                );
+            }
+
+            if (
+                changes.furiganaVisible
+            ) {
+                setFuriganaEnabled(
+                    changes
+                        .furiganaVisible
+                        .newValue
+                );
+            }
+
+            if (changes.popupSize) {
+                updatePopupSize(
+                    Number(
+                        changes
+                            .popupSize
+                            .newValue
+                    ) / 100
+                );
+            }
+
+            if (changes.fontSize) {
+                updateFontSize(
+                    Number(
+                        changes
+                            .fontSize
+                            .newValue
+                    ) / 100
+                );
+            }
         }
-    });
+    );
 }
 
 chrome.runtime.onMessage.addListener(
-    (message, sender, sendResponse) => {
-        if (!message || !message.action) {
+    (
+        message,
+        sender,
+        sendResponse
+    ) => {
+        if (
+            !message ||
+            !message.action
+        ) {
             return false;
         }
 
-        if (message.action === 'updatePopupSize') {
-            updatePopupSize(message.size);
+        if (
+            message.action ===
+            'updatePopupSize'
+        ) {
+            updatePopupSize(
+                message.size
+            );
+
             return false;
         }
 
-        if (message.action === 'updateFontSize') {
-            updateFontSize(message.size);
+        if (
+            message.action ===
+            'updateFontSize'
+        ) {
+            updateFontSize(
+                message.size
+            );
+
             return false;
         }
 
-        if (message.action === 'toggleFurigana') {
-            setFuriganaEnabled(message.visible);
+        if (
+            message.action ===
+            'toggleFurigana'
+        ) {
+            setFuriganaEnabled(
+                message.visible
+            );
+
             return false;
         }
 
-        if (message.action === 'updateReadingHelpMode') {
-            setReadingHelpMode(message.mode);
+        if (
+            message.action ===
+            'updateReadingHelpMode'
+        ) {
+            setReadingHelpMode(
+                message.mode
+            );
+
             return false;
         }
 
-        if (message.action === 'getJlptCoverage') {
+        if (
+            message.action ===
+            'getJlptCoverage'
+        ) {
             sendResponse({
                 success: true,
-                coverage: getJlptDatasetCoverageForDocument(),
-                mode: currentReadingHelpMode,
+                coverage:
+                    getJlptDatasetCoverageForDocument(),
+                mode:
+                    currentReadingHelpMode,
                 furiganaVisible
             });
 
@@ -297,11 +546,16 @@ chrome.runtime.onMessage.addListener(
     }
 );
 
-if (document.readyState === 'loading') {
+if (
+    document.readyState ===
+    'loading'
+) {
     document.addEventListener(
         'DOMContentLoaded',
         initialize,
-        { once: true }
+        {
+            once: true
+        }
     );
 } else {
     initialize();
