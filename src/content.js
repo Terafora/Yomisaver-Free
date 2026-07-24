@@ -45,7 +45,9 @@ async function initialize() {
     try {
         const settings = await getSavedSettings();
 
-        currentReadingHelpMode = getReadingHelpMode(settings[READING_HELP_MODE_STORAGE_KEY]);
+        currentReadingHelpMode = getReadingHelpMode(
+            settings[READING_HELP_MODE_STORAGE_KEY]
+        );
         furiganaVisible = settings.furiganaVisible !== false;
 
         setCurrentReadingHelpMode(currentReadingHelpMode);
@@ -53,7 +55,10 @@ async function initialize() {
         await initializeTokenizer();
         await traverseDOM(document.body);
 
-        document.documentElement.setAttribute('data-yomisaver-processed', 'true');
+        document.documentElement.setAttribute(
+            'data-yomisaver-processed',
+            'true'
+        );
 
         initializeListenersOnly();
         applySavedVisualSettings(settings);
@@ -106,21 +111,30 @@ async function traverseDOM(root) {
 }
 
 function updatePopupSize(size) {
-    document.documentElement.style.setProperty('--popup-scale', size);
+    document.documentElement.style.setProperty(
+        '--yomisaver-popup-scale',
+        size
+    );
 }
 
 function updateFontSize(size) {
-    document.documentElement.style.setProperty('--font-scale', size);
+    document.documentElement.style.setProperty(
+        '--yomisaver-font-scale',
+        size
+    );
 }
 
 function setAllFuriganaVisibility(visible) {
-    const furiganaElements = document.querySelectorAll('.yomisaver-ruby rt');
+    const furiganaElements = document.querySelectorAll(
+        '.yomisaver-ruby rt'
+    );
 
     furiganaElements.forEach(rt => {
         rt.style.display = visible ? '' : 'none';
     });
 
-    document.documentElement.dataset.yomisaverFurigana = visible ? 'visible' : 'hidden';
+    document.documentElement.dataset.yomisaverFurigana =
+        visible ? 'visible' : 'hidden';
 }
 
 function applyCurrentFuriganaSettings() {
@@ -154,7 +168,8 @@ function getSavedSettings() {
                 popupSize: '100',
                 fontSize: '100',
                 furiganaVisible: true,
-                [READING_HELP_MODE_STORAGE_KEY]: DEFAULT_READING_HELP_MODE
+                [READING_HELP_MODE_STORAGE_KEY]:
+                    DEFAULT_READING_HELP_MODE
             },
             resolve
         );
@@ -170,7 +185,9 @@ function applySavedVisualSettings(settings) {
         updateFontSize(Number(settings.fontSize) / 100);
     }
 
-    currentReadingHelpMode = getReadingHelpMode(settings[READING_HELP_MODE_STORAGE_KEY]);
+    currentReadingHelpMode = getReadingHelpMode(
+        settings[READING_HELP_MODE_STORAGE_KEY]
+    );
     furiganaVisible = settings.furiganaVisible !== false;
 
     setCurrentReadingHelpMode(currentReadingHelpMode);
@@ -201,7 +218,10 @@ function scheduleJlptEnrichment() {
                 applyCurrentFuriganaSettings();
             }
         }).catch(error => {
-            console.warn('YomiSaver JLPT enrichment failed:', error);
+            console.warn(
+                'YomiSaver JLPT enrichment failed:',
+                error
+            );
         });
     }, 300);
 }
@@ -213,7 +233,9 @@ function addStorageChangeListener() {
         }
 
         if (changes[READING_HELP_MODE_STORAGE_KEY]) {
-            setReadingHelpMode(changes[READING_HELP_MODE_STORAGE_KEY].newValue);
+            setReadingHelpMode(
+                changes[READING_HELP_MODE_STORAGE_KEY].newValue
+            );
         }
 
         if (changes.furiganaVisible) {
@@ -221,56 +243,66 @@ function addStorageChangeListener() {
         }
 
         if (changes.popupSize) {
-            updatePopupSize(Number(changes.popupSize.newValue) / 100);
+            updatePopupSize(
+                Number(changes.popupSize.newValue) / 100
+            );
         }
 
         if (changes.fontSize) {
-            updateFontSize(Number(changes.fontSize.newValue) / 100);
+            updateFontSize(
+                Number(changes.fontSize.newValue) / 100
+            );
         }
     });
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (!message || !message.action) {
+chrome.runtime.onMessage.addListener(
+    (message, sender, sendResponse) => {
+        if (!message || !message.action) {
+            return false;
+        }
+
+        if (message.action === 'updatePopupSize') {
+            updatePopupSize(message.size);
+            return false;
+        }
+
+        if (message.action === 'updateFontSize') {
+            updateFontSize(message.size);
+            return false;
+        }
+
+        if (message.action === 'toggleFurigana') {
+            setFuriganaEnabled(message.visible);
+            return false;
+        }
+
+        if (message.action === 'updateReadingHelpMode') {
+            setReadingHelpMode(message.mode);
+            return false;
+        }
+
+        if (message.action === 'getJlptCoverage') {
+            sendResponse({
+                success: true,
+                coverage: getJlptDatasetCoverageForDocument(),
+                mode: currentReadingHelpMode,
+                furiganaVisible
+            });
+
+            return true;
+        }
+
         return false;
     }
-
-    if (message.action === 'updatePopupSize') {
-        updatePopupSize(message.size);
-        return false;
-    }
-
-    if (message.action === 'updateFontSize') {
-        updateFontSize(message.size);
-        return false;
-    }
-
-    if (message.action === 'toggleFurigana') {
-        setFuriganaEnabled(message.visible);
-        return false;
-    }
-
-    if (message.action === 'updateReadingHelpMode') {
-        setReadingHelpMode(message.mode);
-        return false;
-    }
-
-    if (message.action === 'getJlptCoverage') {
-        sendResponse({
-            success: true,
-            coverage: getJlptDatasetCoverageForDocument(),
-            mode: currentReadingHelpMode,
-            furiganaVisible
-        });
-
-        return true;
-    }
-
-    return false;
-});
+);
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+    document.addEventListener(
+        'DOMContentLoaded',
+        initialize,
+        { once: true }
+    );
 } else {
     initialize();
 }

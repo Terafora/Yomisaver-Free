@@ -3,15 +3,16 @@ const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-    mode: 'production', // Change to production mode
-    devtool: 'source-map', // Use source-map instead of eval
+    mode: 'production',
+    devtool: 'source-map',
     entry: {
         content: './src/content.js',
-        popup: './popup.js'  // Add popup entry
+        popup: './popup.js'
     },
     output: {
         filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, 'dist'),
+        clean: true
     },
     resolve: {
         fallback: {
@@ -36,7 +37,7 @@ module.exports = {
             readline: false,
             https: require.resolve('https-browserify'),
             http: require.resolve('stream-http'),
-            querystring: require.resolve('querystring-es3'),
+            querystring: require.resolve('querystring-es3')
         }
     },
     node: {
@@ -68,7 +69,7 @@ module.exports = {
     optimization: {
         minimize: true,
         moduleIds: 'deterministic',
-        chunkIds: 'deterministic',
+        chunkIds: 'deterministic'
     },
     plugins: [
         new webpack.IgnorePlugin({
@@ -88,7 +89,8 @@ module.exports = {
                 { from: 'background.js' },
                 { from: 'popup.html' },
                 { from: 'popup.js' },
-                { from: 'styles.css' },
+                { from: 'content.css' },
+                { from: 'popup.css' },
                 { from: 'icon-16.png' },
                 { from: 'icon-48.png' },
                 { from: 'icon-128.png' }

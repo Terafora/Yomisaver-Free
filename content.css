@@ -1,0 +1,452 @@
+:root {
+    --yomisaver-popup-scale: 1;
+    --yomisaver-font-scale: 1;
+}
+
+/* YomiSaver injected furigana */
+.yomisaver-text {
+    line-height: 2.05;
+}
+
+.yomisaver-ruby {
+    ruby-position: over;
+    text-align: center;
+    line-height: 1.15;
+    margin: 0 0.03em;
+}
+
+.yomisaver-ruby rt {
+    font-size: 0.55em;
+    color: #555;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+}
+
+.yomisaver-word {
+    cursor: help;
+}
+
+.yomisaver-word.active {
+    background: rgba(216, 74, 66, 0.12);
+    border-radius: 3px;
+}
+
+/* Dictionary popup */
+.yomisaver-popup {
+    --ys-color-paper: #faf8f3;
+    --ys-color-surface: #ffffff;
+    --ys-color-ink: #20242c;
+    --ys-color-muted: #68707d;
+    --ys-color-vermilion: #d84a42;
+    --ys-color-vermilion-dark: #b93b35;
+    --ys-color-vermilion-soft: #f7e9e6;
+    --ys-color-indigo: #31527a;
+    --ys-color-indigo-hover: #274563;
+    --ys-color-indigo-soft: #eef2f7;
+    --ys-color-border: #e4e1db;
+    --ys-color-success: #3f7652;
+    --ys-color-success-soft: #edf6f0;
+
+    --ys-font-sans:
+        Inter,
+        "Noto Sans JP",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    --ys-font-japanese:
+        "Noto Serif JP",
+        "Yu Mincho",
+        "Hiragino Mincho ProN",
+        serif;
+
+    --ys-radius-small: 6px;
+    --ys-radius-medium: 10px;
+    --ys-shadow-popup: 0 16px 40px rgba(32, 36, 44, 0.2);
+
+    position: fixed;
+    z-index: 999999;
+
+    box-sizing: border-box;
+    width: 340px;
+    min-width: 240px;
+    max-width: calc(100vw - 20px);
+    max-height: 80vh;
+    margin: 0;
+    padding: 0;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(216, 74, 66, 0.035),
+            transparent 38%
+        ),
+        var(--ys-color-paper);
+
+    color: var(--ys-color-ink);
+    border: 1px solid var(--ys-color-border);
+    border-top: 4px solid var(--ys-color-vermilion);
+    border-radius: var(--ys-radius-medium);
+    box-shadow: var(--ys-shadow-popup);
+
+    font-family: var(--ys-font-sans);
+    font-size: calc(14px * var(--yomisaver-font-scale));
+    line-height: 1.5;
+    text-align: left;
+    word-wrap: break-word;
+
+    pointer-events: auto;
+    transform: scale(var(--yomisaver-popup-scale));
+    transform-origin: top left;
+
+    opacity: 1;
+    transition:
+        opacity 180ms ease,
+        box-shadow 180ms ease;
+
+    scrollbar-width: none;
+     -ms-overflow-style: none;
+}
+
+.yomisaver-popup::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.yomisaver-popup,
+.yomisaver-popup * {
+    box-sizing: border-box;
+}
+
+.yomisaver-popup.hiding,
+.yomisaver-popup.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.yomisaver-popup.fade-in {
+    opacity: 1;
+}
+
+/* Header */
+.yomisaver-popup .header {
+    position: relative;
+    margin: 0;
+    padding: 15px 48px 13px 16px;
+
+    background: rgba(255, 255, 255, 0.58);
+    border-bottom: 1px solid var(--ys-color-border);
+}
+
+.yomisaver-popup .word {
+    display: block;
+    margin: 0;
+
+    color: var(--ys-color-ink);
+    font-family: var(--ys-font-japanese);
+    font-size: 1.65em;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
+.yomisaver-popup .reading {
+    display: block;
+    margin: 4px 0 0;
+
+    color: var(--ys-color-muted);
+    font-size: 0.88em;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+}
+
+.yomisaver-popup .jlpt {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 9px;
+    padding: 3px 8px;
+
+    background: var(--ys-color-vermilion-soft);
+    color: var(--ys-color-vermilion-dark);
+    border: 1px solid rgba(216, 74, 66, 0.18);
+    border-radius: 999px;
+
+    font-size: 0.72em;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* Close button */
+.yomisaver-popup .close-button {
+    position: absolute;
+    z-index: 2;
+    top: 11px;
+    right: 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+
+    background: transparent;
+    color: var(--ys-color-muted);
+    border: 1px solid transparent;
+    border-radius: 50%;
+
+    cursor: pointer;
+    font-family: var(--ys-font-sans);
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1;
+
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease;
+}
+
+.yomisaver-popup .close-button:hover {
+    background: var(--ys-color-vermilion-soft);
+    color: var(--ys-color-vermilion-dark);
+    border-color: rgba(216, 74, 66, 0.16);
+}
+
+.yomisaver-popup .close-button:focus-visible {
+    outline: 2px solid var(--ys-color-indigo);
+    outline-offset: 2px;
+}
+
+/* Meanings */
+.yomisaver-popup-body {
+    margin: 0;
+    padding: 0;
+}
+
+.yomisaver-popup .meanings-container {
+    margin: 0;
+    padding: 14px 16px 4px;
+
+    color: var(--ys-color-ink);
+    overflow-x: hidden;
+    counter-reset: ys-meaning;
+}
+
+.yomisaver-popup .meaning-group {
+    position: relative;
+
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 12px;
+    padding: 0 0 12px 34px;
+
+    border-bottom: 1px solid var(--ys-color-border);
+    counter-increment: ys-meaning;
+}
+
+.yomisaver-popup .meaning-group::before {
+    content: counter(ys-meaning);
+
+    position: absolute;
+    top: 1px;
+    left: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 22px;
+    height: 22px;
+
+    background: var(--ys-color-indigo);
+    color: white;
+    border-radius: 50%;
+
+    font-size: 0.72em;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.yomisaver-popup .meaning-group:last-child {
+    margin-bottom: 0;
+    padding-bottom: 8px;
+    border-bottom: none;
+}
+
+.yomisaver-popup .meaning-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+
+    margin: 0 0 6px;
+}
+
+.yomisaver-popup .pos,
+.yomisaver-popup .tags {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 2px 7px;
+
+    border-radius: 999px;
+
+    font-size: 0.72em;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.3;
+}
+
+.yomisaver-popup .pos {
+    background: var(--ys-color-indigo-soft);
+    color: var(--ys-color-indigo);
+    border: 1px solid rgba(49, 82, 122, 0.14);
+}
+
+.yomisaver-popup .tags {
+    background: var(--ys-color-vermilion-soft);
+    color: var(--ys-color-vermilion-dark);
+    border: 1px solid rgba(216, 74, 66, 0.14);
+}
+
+.yomisaver-popup .info {
+    flex-basis: 100%;
+    margin: 2px 0 0;
+
+    color: var(--ys-color-muted);
+    font-size: 0.78em;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+.yomisaver-popup .definitions {
+    min-width: 0;
+    margin: 0;
+
+    color: var(--ys-color-ink);
+    font-size: 0.93em;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+/* Loading and empty states */
+.yomisaver-popup-status {
+    min-height: 68px;
+    padding: 22px 16px;
+
+    color: var(--ys-color-muted);
+    font-size: 0.92em;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* Footer and save button */
+.yomisaver-popup-footer {
+    margin: 0;
+    padding: 10px 16px 15px;
+
+    background: rgba(255, 255, 255, 0.46);
+    border-top: 1px solid var(--ys-color-border);
+}
+
+.yomisaver-popup .save-vocab-btn {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 9px 14px;
+
+    background: var(--ys-color-indigo);
+    color: white;
+    border: 1px solid var(--ys-color-indigo);
+    border-radius: var(--ys-radius-small);
+    box-shadow: 0 4px 10px rgba(49, 82, 122, 0.18);
+
+    cursor: pointer;
+    font-family: var(--ys-font-sans);
+    font-size: 0.88em;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease;
+}
+
+.yomisaver-popup .save-vocab-btn:hover {
+    background: var(--ys-color-indigo-hover);
+    border-color: var(--ys-color-indigo-hover);
+    box-shadow: 0 6px 14px rgba(49, 82, 122, 0.24);
+    transform: translateY(-1px);
+}
+
+.yomisaver-popup .save-vocab-btn:active {
+    box-shadow: 0 2px 6px rgba(49, 82, 122, 0.18);
+    transform: translateY(1px);
+}
+
+.yomisaver-popup .save-vocab-btn:focus-visible {
+    outline: 2px solid var(--ys-color-vermilion);
+    outline-offset: 2px;
+}
+
+.yomisaver-popup .save-vocab-btn:disabled {
+    background: #a7abb2;
+    color: white;
+    border-color: #a7abb2;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.75;
+    transform: none;
+}
+
+.yomisaver-popup .save-vocab-btn.saved {
+    background: var(--ys-color-success);
+    border-color: var(--ys-color-success);
+    box-shadow: 0 4px 10px rgba(63, 118, 82, 0.18);
+    cursor: default;
+}
+
+/* Scrollbar */
+
+.yomisaver-popup::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.yomisaver-popup::-webkit-scrollbar-thumb {
+    background-color: rgba(49, 82, 122, 0.38);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+}
+
+.yomisaver-popup::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(49, 82, 122, 0.58);
+}
+
+/* Reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+    .yomisaver-popup,
+    .yomisaver-popup .close-button,
+    .yomisaver-popup .save-vocab-btn {
+        transition: none;
+    }
+}

@@ -1,48 +1,143 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
     <title>YomiSaver</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="popup.css">
 </head>
-<body class="yomisaver-menu">
-    <div class="yomisaver-tab-container">
-        <button class="yomisaver-tab active" data-tab="flashcards">Cards</button>
-        <button class="yomisaver-tab" data-tab="settings">Settings</button>
-        <button class="yomisaver-tab" data-tab="jlpt">JLPT</button>
-        <button class="yomisaver-tab" data-tab="premium">Support</button>
-    </div>
 
-        <div id="flashcards" class="yomisaver-tab-content active">
+<body class="yomisaver-menu">
+    <header class="yomisaver-brand">
+        <div class="yomisaver-brand-mark" aria-hidden="true">
+            読
+        </div>
+
+        <div class="yomisaver-brand-copy">
+            <p class="yomisaver-brand-eyebrow">Japanese reading companion</p>
+            <h1>YomiSaver</h1>
+            <p class="yomisaver-brand-tagline">
+                Read naturally. Save what matters.
+            </p>
+        </div>
+    </header>
+
+    <nav
+        class="yomisaver-tab-container"
+        aria-label="YomiSaver sections"
+    >
+        <button
+            class="yomisaver-tab active"
+            data-tab="flashcards"
+            type="button"
+        >
+            Cards
+        </button>
+
+        <button
+            class="yomisaver-tab"
+            data-tab="settings"
+            type="button"
+        >
+            Settings
+        </button>
+
+        <button
+            class="yomisaver-tab"
+            data-tab="jlpt"
+            type="button"
+        >
+            JLPT
+        </button>
+
+        <button
+            class="yomisaver-tab"
+            data-tab="premium"
+            type="button"
+        >
+            Support
+        </button>
+    </nav>
+
+    <main class="yomisaver-content-container">
+        <section
+            id="flashcards"
+            class="yomisaver-tab-content active"
+        >
+            <div class="yomisaver-section-heading">
+                <div>
+                    <p class="yomisaver-section-kicker">Your collection</p>
+                    <h2>Saved cards</h2>
+                </div>
+
+                <span
+                    id="flashcard-result-count"
+                    class="yomisaver-count-badge"
+                >
+                    0 cards
+                </span>
+            </div>
+
             <div class="yomisaver-flashcard-search">
                 <input
                     id="flashcard-search"
                     type="search"
-                    placeholder="Search saved cards..."
+                    placeholder="Search words, readings or meanings"
                     aria-label="Search saved flashcards"
                 >
-                <span id="flashcard-result-count">0 cards</span>
             </div>
 
             <div class="yomisaver-flashcard-toolbar">
-                <button id="select-all-flashcards" type="button">Select all</button>
-                <button id="clear-selected-flashcards" type="button">Clear selected</button>
-                <span id="selected-flashcard-count">0 selected</span>
+                <button
+                    id="select-all-flashcards"
+                    type="button"
+                >
+                    Select all
+                </button>
+
+                <button
+                    id="clear-selected-flashcards"
+                    type="button"
+                >
+                    Clear
+                </button>
+
+                <span id="selected-flashcard-count">
+                    0 selected
+                </span>
             </div>
 
             <div id="vocab-container"></div>
 
-           <div class="yomisaver-export-actions">
-                <button id="export-flashcards" class="yomisaver-premium-button">
+            <div class="yomisaver-export-actions">
+                <button
+                    id="export-flashcards"
+                    class="yomisaver-primary-button"
+                    type="button"
+                >
                     Export Selected for Anki
                 </button>
 
-                <button id="backup-flashcards" class="yomisaver-secondary-button">
-                    Backup All Cards
-                </button>
+                <div class="yomisaver-secondary-actions">
+                    <button
+                        id="backup-flashcards"
+                        class="yomisaver-secondary-button"
+                        type="button"
+                    >
+                        Backup All
+                    </button>
 
-                <button id="import-flashcards" class="yomisaver-secondary-button">
-                    Import Backup
-                </button>
+                    <button
+                        id="import-flashcards"
+                        class="yomisaver-secondary-button"
+                        type="button"
+                    >
+                        Import Backup
+                    </button>
+                </div>
 
                 <input
                     id="import-flashcards-file"
@@ -59,118 +154,267 @@
                     hidden
                 ></div>
             </div>
-        </div>
+        </section>
 
-        <div id="settings" class="yomisaver-tab-content">
-            <div class="yomisaver-settings-group">
-                <h3>Popup Size</h3>
-                <input type="range" class="yomisaver-range-control" id="popupSize" min="80" max="120" value="100">
+        <section
+            id="settings"
+            class="yomisaver-tab-content"
+        >
+            <div class="yomisaver-section-heading">
+                <div>
+                    <p class="yomisaver-section-kicker">Personalise</p>
+                    <h2>Display settings</h2>
+                </div>
             </div>
-            <div class="yomisaver-settings-group">
-                <h3>Font Size</h3>
-                <input type="range" class="yomisaver-range-control" id="fontSize" min="80" max="120" value="100">
-            </div>
-            <div class="yomisaver-settings-group">
-                <h3>Reading assistance</h3>
-                <p class="yomisaver-help-text">
-                    Furigana visibility is now controlled from the JLPT tab, where you can choose how much help YomiSaver should provide.
-                </p>
-            </div>
-            <div class="yomisaver-settings-group">
-                <h3>Acknowledgements</h3>
-                <button id="showAcknowledgements">View Acknowledgements</button>
-            </div>
-        </div>
 
-        <div id="acknowledgements" class="yomisaver-tab-content hidden">
-            <button id="backToSettings" class="back-button">Hide</button>
-            <h3>Acknowledgements</h3>
-            <p>The development of YomiSaver has been made possible with the support of various open-source tools, APIs, and resources.</p>
-            <ul>
-                <li><strong>Kuromoji.js</strong>
-                    <ul>
-                        <li>Used for tokenizing Japanese text and enabling the injection of furigana.</li>
-                        <li><a href="https://github.com/takuyaa/kuromoji.js" target="_blank">Kuromoji.js on GitHub</a></li>
-                    </ul>
-                </li>
-                <li><strong>Jisho.org API</strong>
-                    <ul>
-                        <li>Provides word definitions, readings, and detailed dictionary data.</li>
-                        <li>Data sourced from publicly available Japanese-English dictionaries, such as JMdict.</li>
-                        <li><a href="https://jisho.org" target="_blank">Jisho.org</a></li>
-                    </ul>
-                </li>
-                <li><strong>JMdict</strong>
-                    <ul>
-                        <li>A comprehensive Japanese-English dictionary file used in Jisho.org, developed and maintained by the Electronic Dictionary Research and Development Group.</li>
-                        <li><a href="https://www.edrdg.org/jmdict/edict.html" target="_blank">JMdict Project</a></li>
-                    </ul>
-                </li>
-                <li><strong>Tanos JLPT Resources</strong>
-                    <ul>
-                        <li>Used as a community JLPT vocabulary reference source. Tanos data is credited to Jonathan Waller.</li>
-                        <li><a href="https://www.tanos.co.uk/jlpt/" target="_blank">Tanos JLPT Resources</a></li>
-                    </ul>
-                </li>
-                <li><strong>Bluskyo/JLPT_Vocabulary</strong>
-                    <ul>
-                        <li>Used for cleaned JSON/CSV conversions of Tanos JLPT vocabulary data.</li>
-                        <li><a href="https://github.com/Bluskyo/JLPT_Vocabulary" target="_blank">JLPT_Vocabulary on GitHub</a></li>
-                    </ul>
-                </li>
-                <li><strong>Google Chrome Extensions Platform</strong>
-                    <ul>
-                        <li>For enabling the creation and deployment of YomiSaver as a Chrome browser extension.</li>
-                        <li><a href="https://developer.chrome.com/docs/extensions/" target="_blank">Chrome Web Store Documentation</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-
-        <div id="jlpt" class="yomisaver-tab-content">
             <div class="yomisaver-settings-group">
-                <h3>Reading Help Level</h3>
-                <p class="yomisaver-help-text">
-                    Choose the JLPT level up to which YomiSaver should hide furigana. Unknown words stay visible unless furigana is turned off.
-                </p>
-
-                <div id="jlpt-coverage" class="yomisaver-coverage-card">
-                    Checking JLPT coverage for this page…
+                <div class="yomisaver-setting-heading">
+                    <h3>Dictionary size</h3>
+                    <span>Smaller — Larger</span>
                 </div>
 
-                <div id="reading-help-options" class="yomisaver-radio-list"></div>
+                <input
+                    type="range"
+                    class="yomisaver-range-control"
+                    id="popupSize"
+                    min="80"
+                    max="120"
+                    value="100"
+                    aria-label="Dictionary popup size"
+                >
             </div>
-        </div>
 
-        <div id="premium" class="yomisaver-tab-content">
+            <div class="yomisaver-settings-group">
+                <div class="yomisaver-setting-heading">
+                    <h3>Dictionary text</h3>
+                    <span>Smaller — Larger</span>
+                </div>
+
+                <input
+                    type="range"
+                    class="yomisaver-range-control"
+                    id="fontSize"
+                    min="80"
+                    max="120"
+                    value="100"
+                    aria-label="Dictionary text size"
+                >
+            </div>
+
+            <div class="yomisaver-settings-group">
+                <h3>Reading assistance</h3>
+
+                <p class="yomisaver-help-text">
+                    Furigana visibility is controlled from the JLPT
+                    tab, where you can choose how much reading help
+                    YomiSaver provides.
+                </p>
+            </div>
+
+            <div class="yomisaver-settings-group">
+                <h3>About YomiSaver</h3>
+
+                <button
+                    id="showAcknowledgements"
+                    class="yomisaver-secondary-button"
+                    type="button"
+                >
+                    View acknowledgements
+                </button>
+            </div>
+        </section>
+
+        <section
+            id="acknowledgements"
+            class="yomisaver-tab-content hidden"
+        >
+            <button
+                id="backToSettings"
+                class="yomisaver-back-button"
+                type="button"
+            >
+                ← Back to settings
+            </button>
+
+            <div class="yomisaver-section-heading">
+                <div>
+                    <p class="yomisaver-section-kicker">Open resources</p>
+                    <h2>Acknowledgements</h2>
+                </div>
+            </div>
+
+            <p class="yomisaver-help-text">
+                YomiSaver is made possible by open-source tools,
+                APIs and community-maintained language resources.
+            </p>
+
+            <ul class="yomisaver-acknowledgements-list">
+                <li>
+                    <strong>Kuromoji.js</strong>
+                    <span>
+                        Japanese tokenisation and furigana processing.
+                    </span>
+                    <a
+                        href="https://github.com/takuyaa/kuromoji.js"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Visit project
+                    </a>
+                </li>
+
+                <li>
+                    <strong>Jisho.org API</strong>
+                    <span>
+                        Readings, definitions and dictionary data.
+                    </span>
+                    <a
+                        href="https://jisho.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Visit Jisho
+                    </a>
+                </li>
+
+                <li>
+                    <strong>JMdict</strong>
+                    <span>
+                        Japanese-English dictionary data maintained
+                        by the EDRDG.
+                    </span>
+                    <a
+                        href="https://www.edrdg.org/jmdict/edict.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Visit project
+                    </a>
+                </li>
+
+                <li>
+                    <strong>Tanos JLPT Resources</strong>
+                    <span>
+                        Community JLPT vocabulary reference data
+                        credited to Jonathan Waller.
+                    </span>
+                    <a
+                        href="https://www.tanos.co.uk/jlpt/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Visit resource
+                    </a>
+                </li>
+
+                <li>
+                    <strong>Bluskyo/JLPT_Vocabulary</strong>
+                    <span>
+                        Cleaned JSON and CSV conversions of JLPT
+                        vocabulary data.
+                    </span>
+                    <a
+                        href="https://github.com/Bluskyo/JLPT_Vocabulary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Visit project
+                    </a>
+                </li>
+
+                <li>
+                    <strong>Chrome Extensions Platform</strong>
+                    <span>
+                        Browser APIs used to deliver YomiSaver.
+                    </span>
+                    <a
+                        href="https://developer.chrome.com/docs/extensions/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        View documentation
+                    </a>
+                </li>
+            </ul>
+        </section>
+
+        <section
+            id="jlpt"
+            class="yomisaver-tab-content"
+        >
+            <div class="yomisaver-section-heading">
+                <div>
+                    <p class="yomisaver-section-kicker">Reading assistance</p>
+                    <h2>Furigana level</h2>
+                </div>
+            </div>
+
+            <p class="yomisaver-help-text">
+                Choose the JLPT level up to which YomiSaver should
+                hide furigana. Unknown words remain visible unless
+                furigana is turned off completely.
+            </p>
+
+            <div
+                id="jlpt-coverage"
+                class="yomisaver-coverage-card"
+            >
+                Checking JLPT coverage for this page…
+            </div>
+
+            <div
+                id="reading-help-options"
+                class="yomisaver-radio-list"
+            ></div>
+        </section>
+
+        <section
+            id="premium"
+            class="yomisaver-tab-content"
+        >
             <div class="yomisaver-support-card">
-                <h3>Support YomiSaver</h3>
+                <div
+                    class="yomisaver-support-mark"
+                    aria-hidden="true"
+                >
+                    心
+                </div>
+
+                <p class="yomisaver-section-kicker">
+                    Independent and free
+                </p>
+
+                <h2>Support YomiSaver</h2>
 
                 <p>
-                    YomiSaver is a small independent project built to make Japanese reading a little smoother,
-                    friendlier, and less disruptive.
+                    YomiSaver is built to make Japanese reading
+                    smoother, friendlier and less disruptive.
                 </p>
 
                 <p>
-                    If the extension is useful to you and you would like to support future development,
-                    a small tip is always appreciated.
+                    If it helps you and you would like to support
+                    future development, a small tip is always
+                    appreciated.
                 </p>
 
                 <p class="yomisaver-support-note">
-                    No pressure, no locked core features - just a way to help keep the project moving.
+                    No pressure and no locked core features—just a
+                    way to help keep the project moving.
                 </p>
 
-                <a href="https://ko-fi.com/projectexitvelocity"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="yomisaver-premium-button">
+                <a
+                    href="https://ko-fi.com/projectexitvelocity"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="yomisaver-primary-button"
+                >
                     Support on Ko-fi
                 </a>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <div id="debug" style="display:none;"></div>
+    <div id="debug" hidden></div>
 
     <script src="popup.bundle.js"></script>
 </body>
