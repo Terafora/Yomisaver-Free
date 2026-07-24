@@ -35,6 +35,7 @@
   "scripts": {
     "build:jlpt": "node scripts/build-jlpt-data.js",
     "build": "webpack --mode production",
+    "build:release": "npm run build:jlpt && npm run build",
     "dev": "webpack --mode development"
   }
 }
