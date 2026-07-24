@@ -88,7 +88,8 @@ module.exports = {
                 { from: 'background.js' },
                 { from: 'popup.html' },
                 { from: 'popup.js' },
-                { from: 'styles.css' },
+                { from: 'content.css' },
+                { from: 'popup.css' },
                 { from: 'icon-16.png' },
                 { from: 'icon-48.png' },
                 { from: 'icon-128.png' }
